@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Hemo.Domain/Hemo.Domain.csproj" />
+    <Project Path="src/Hemo.Application/Hemo.Application.csproj" />
+    <Project Path="src/Hemo.Infrastructure/Hemo.Infrastructure.csproj" />
+    <Project Path="src/Hemo.Api/Hemo.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Hemo.Api.IntegrationTests/Hemo.Api.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

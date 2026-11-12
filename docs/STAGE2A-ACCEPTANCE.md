@@ -6,8 +6,8 @@
 - [x] Require server-side global permission on protected example endpoint
 - [x] One-time explicit administrator bootstrap using secret env vars
 - [x] Negative-path integration tests without SQL
-- [ ] Verify login and bootstrap against clean SQL Server with full baseline applied
-- [ ] Test RBAC fixture facility/department isolation
+- [x] SQL Server 2022 CI applies full 88-table baseline, bootstraps admin, authenticates, verifies global permission and logs out
+- [ ] Test RBAC fixture facility/department isolation (future clinical resource API work)
 - [ ] Account lockout, audit events, password change, revocation, 2FA
 - [ ] Production TLS/proxy/data protection key persistence deployment hardening
 - [ ] Reconcile medical entity mappings and approve business rules

@@ -121,11 +121,20 @@ public sealed class SqlServerIdentityRoundTripTests
         using var allowed = await client.GetAsync("/api/v1/system/access-check");
         Assert.Equal(HttpStatusCode.OK, allowed.StatusCode);
 
+        // ASP.NET Core antiforgery tokens are tied to the authenticated identity.
+        // Refresh CSRF after login; the Angular client does this before logout.
+        using var authenticatedCsrf = await client.GetAsync("/api/v1/auth/csrf");
+        Assert.Equal(HttpStatusCode.NoContent, authenticatedCsrf.StatusCode);
+        var freshCookie = authenticatedCsrf.Headers.GetValues("Set-Cookie")
+            .First(x => x.StartsWith("XSRF-TOKEN=", StringComparison.Ordinal))
+            .Split(';')[0].Substring("XSRF-TOKEN=".Length);
+        var freshToken = Uri.UnescapeDataString(freshCookie);
+
         using var logout = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/logout")
         {
             Content = JsonContent.Create(new { })
         };
-        logout.Headers.TryAddWithoutValidation("X-XSRF-TOKEN", token);
+        logout.Headers.TryAddWithoutValidation("X-XSRF-TOKEN", freshToken);
         using var signedOut = await client.SendAsync(logout);
         Assert.Equal(HttpStatusCode.NoContent, signedOut.StatusCode);
 

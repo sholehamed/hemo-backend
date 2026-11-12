@@ -1,6 +1,6 @@
 # ADR-0002 — Hemo independent cookie BFF on existing sec schema
 
-Status: Implemented scaffold; SQL-backed positive-path tests pending an isolated SQL Server instance.
+Status: Implemented and validated with SQL Server 2022 CI end-to-end auth test; security hardening remains.
 
 ## Identity source of truth
 The previously designed SQL Server baseline owns sec.AccountUser, sec.Role, sec.Permission, sec.UserRole, sec.RolePermission. Hemo's EF models map those exact tables and ExcludeFromMigrations. No ASP.NET Identity parallel AspNetUsers tables. Role codes are seeded by the baseline: SYSTEM_ADMIN, NURSE, DOCTOR, BLOOD_TRANSFUSION_EXPERT, ADMISSION, BIOMED_ENGINEER, HV_MANAGER, SUPERVISOR. Password hashes use Microsoft's ASP.NET Core PasswordHasher; passwords never go in Git.
@@ -23,6 +23,6 @@ with environment variables HEMO_BOOTSTRAP_USERNAME, HEMO_BOOTSTRAP_DISPLAY_NAME,
 
 ## Limitations
 - The SQL baseline is a proposed physical design, not verified by medical specialists.
-- Current CI tests use an unreachable SQL endpoint for negative security contract tests; SQL login/role/bootstrap positive-path integration tests remain before security go-live.
+- CI uses an unreachable SQL endpoint for negative security tests AND disposable SQL Server 2022 for the full database baseline, initial-admin bootstrap, login/session, global grant and logout flow. This does not validate multi-hospital authorization or production deployment security.
 - No users UI, account lockout ledger, password reset, 2FA, permission editing, facility/department API enforcement or full login audit.
 - Readiness only checks connectivity; it does not verify baseline tables. A future SQL schema readiness check must validate required objects.

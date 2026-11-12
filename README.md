@@ -1,5 +1,7 @@
 # Hemo Backend
 
+> 📚 **مرکز رسمی برنامه و مستندات Hemo:** [docs/README.md](docs/README.md) — شامل همه مراحل، دستورکار دقیق گام بعد، ماتریس ۶۲ صفحه و گزارش پیشرفت. برای ادامه توسعه **از همین سند شروع کنید**.
+
 Independent ASP.NET Core 10 backend (no Foundation dependencies).
 
 ## Local run

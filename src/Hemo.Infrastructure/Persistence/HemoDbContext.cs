@@ -1,9 +1,81 @@
+using Hemo.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 
 namespace Hemo.Infrastructure.Persistence;
 
 /// <summary>
-/// Stage 1 connection scaffold only; no clinical entity mappings yet.
-/// Do not run EnsureCreated or generate an empty initial migration.
+/// Maps existing Hemo sec.* identity tables; baseline SQL remains their DDL owner.
+/// No clinical entities are mapped until the schema reconciliation stage.
 /// </summary>
-public sealed class HemoDbContext(DbContextOptions<HemoDbContext> options) : DbContext(options) { }
+public sealed class HemoDbContext(DbContextOptions<HemoDbContext> options) : DbContext(options)
+{
+    public DbSet<AccountUser> AccountUsers => Set<AccountUser>();
+    public DbSet<HemoRole> Roles => Set<HemoRole>();
+    public DbSet<HemoPermission> Permissions => Set<HemoPermission>();
+    public DbSet<UserRole> UserRoles => Set<UserRole>();
+    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        var users = modelBuilder.Entity<AccountUser>();
+        users.ToTable("AccountUser", "sec", table => table.ExcludeFromMigrations());
+        users.HasKey(x => x.AccountUserId);
+        users.Property(x => x.UserName).HasMaxLength(100).IsRequired();
+        users.Property(x => x.DisplayName).HasMaxLength(180).IsRequired();
+        users.Property(x => x.PasswordHash).HasMaxLength(500).IsRequired();
+        users.Property(x => x.ExternalIdentityId).HasMaxLength(180);
+        users.Property(x => x.Email).HasMaxLength(254);
+        users.Property(x => x.PersonnelCode).HasMaxLength(70);
+        users.Property(x => x.IsActive).HasDefaultValue(true);
+        users.Property(x => x.LastLoginAt).HasColumnType("datetime2(3)");
+        users.Property(x => x.CreatedAt).HasColumnType("datetime2(3)")
+            .HasDefaultValueSql("SYSUTCDATETIME()");
+        users.Property(x => x.RowVersion).IsRowVersion();
+        users.HasIndex(x => x.UserName).IsUnique();
+
+        var roles = modelBuilder.Entity<HemoRole>();
+        roles.ToTable("Role", "sec", table => table.ExcludeFromMigrations());
+        roles.HasKey(x => x.RoleId);
+        roles.Property(x => x.Code).HasMaxLength(45).IsUnicode(false).IsRequired();
+        roles.Property(x => x.Name).HasMaxLength(130).IsRequired();
+        roles.Property(x => x.IsSystem).HasDefaultValue(true);
+        roles.Property(x => x.CreatedAt).HasColumnType("datetime2(3)")
+            .HasDefaultValueSql("SYSUTCDATETIME()");
+        roles.Property(x => x.RowVersion).IsRowVersion();
+        roles.HasIndex(x => x.Code).IsUnique();
+
+        var permissions = modelBuilder.Entity<HemoPermission>();
+        permissions.ToTable("Permission", "sec", table => table.ExcludeFromMigrations());
+        permissions.HasKey(x => x.PermissionId);
+        permissions.Property(x => x.Code).HasMaxLength(120).IsUnicode(false).IsRequired();
+        permissions.Property(x => x.Description).HasMaxLength(260).IsRequired();
+        permissions.Property(x => x.CreatedAt).HasColumnType("datetime2(3)")
+            .HasDefaultValueSql("SYSUTCDATETIME()");
+        permissions.Property(x => x.RowVersion).IsRowVersion();
+        permissions.HasIndex(x => x.Code).IsUnique();
+
+        var userRoles = modelBuilder.Entity<UserRole>();
+        userRoles.ToTable("UserRole", "sec", table => table.ExcludeFromMigrations());
+        userRoles.HasKey(x => x.UserRoleId);
+        userRoles.Property(x => x.EffectiveFrom).HasColumnType("datetime2(3)")
+            .HasDefaultValueSql("SYSUTCDATETIME()");
+        userRoles.Property(x => x.EffectiveUntil).HasColumnType("datetime2(3)");
+        userRoles.Property(x => x.CreatedAt).HasColumnType("datetime2(3)")
+            .HasDefaultValueSql("SYSUTCDATETIME()");
+        userRoles.Property(x => x.IsActive).HasDefaultValue(true);
+        userRoles.Property(x => x.RowVersion).IsRowVersion();
+        userRoles.HasOne<AccountUser>().WithMany().HasForeignKey(x => x.AccountUserId)
+            .OnDelete(DeleteBehavior.NoAction);
+        userRoles.HasOne<HemoRole>().WithMany().HasForeignKey(x => x.RoleId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        var rolePermissions = modelBuilder.Entity<RolePermission>();
+        rolePermissions.ToTable("RolePermission", "sec", table => table.ExcludeFromMigrations());
+        rolePermissions.HasKey(x => x.RolePermissionId);
+        rolePermissions.HasOne<HemoRole>().WithMany().HasForeignKey(x => x.RoleId)
+            .OnDelete(DeleteBehavior.NoAction);
+        rolePermissions.HasOne<HemoPermission>().WithMany().HasForeignKey(x => x.PermissionId)
+            .OnDelete(DeleteBehavior.NoAction);
+        rolePermissions.HasIndex(x => new { x.RoleId, x.PermissionId }).IsUnique();
+    }
+}

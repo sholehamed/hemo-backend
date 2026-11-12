@@ -23,7 +23,7 @@ Development API: http://localhost:5080. Main endpoints:
 
 ## Database and initial admin
 
-The original proposed 88-table Hemo SQL Server baseline is a **prerequisite** for identity endpoints. Its sec.* tables are the DDL source of truth; EF excludes those from migrations to prevent duplicate objects. The baseline is intended ONLY for a clean test database and has not yet been validated on a live SQL Server. Do not use EnsureCreated or modify existing production schemas. Set ConnectionStrings__Hemo securely (user secrets / environment, least-privileged application identity).
+The proposed 88-table Hemo SQL Server baseline is now versioned at `database/reference/Hemo_Database_SQLServer_2022.sql` and is a **prerequisite** for identity endpoints. Its sec.* tables are the DDL source of truth; EF excludes those from migrations to prevent duplicate objects. The baseline is intended ONLY for a fresh database; GitHub Actions now tests it on disposable SQL Server 2022. This does not mean it has passed hospital clinical validation. Do not use EnsureCreated or modify existing production schemas. Set ConnectionStrings__Hemo securely (user secrets / environment, least-privileged application identity).
 
 There is **no default admin password**. After applying the baseline, set HEMO_BOOTSTRAP_USERNAME, HEMO_BOOTSTRAP_DISPLAY_NAME, HEMO_BOOTSTRAP_PASSWORD (minimum 16 chars including upper, lower, digit, symbol) in your secure shell environment. Then explicitly run:
 

@@ -22,6 +22,10 @@ builder.Services.AddHealthChecks()
     .AddDbContextCheck<HemoDbContext>(
         name: "sqlserver",
         failureStatus: HealthStatus.Unhealthy,
+        tags: ["ready"])
+    .AddCheck<IdentitySchemaHealthCheck>(
+        name: "sec-schema",
+        failureStatus: HealthStatus.Unhealthy,
         tags: ["ready"]);
 
 var app = builder.Build();

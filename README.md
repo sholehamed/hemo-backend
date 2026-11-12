@@ -1,10 +1,8 @@
 # Hemo Backend
 
-Independent ASP.NET Core 10 LTS backend. **No dependency on Foundation.**
+Independent ASP.NET Core 10 backend (no Foundation dependencies).
 
-## Run locally
-
-Install .NET SDK 10. Run from repository root:
+## Local run
 
 ```bash
 dotnet restore Hemo.slnx
@@ -13,14 +11,26 @@ dotnet test Hemo.slnx
 dotnet run --project src/Hemo.Api
 ```
 
-API (Development): `http://localhost:5080/api/v1/system/status`, `/health/live`, `/health/ready`, `/openapi/v1.json`.
+Development API: http://localhost:5080. Main endpoints:
+- GET /health/live (process liveness without SQL)
+- GET /health/ready (SQL connectivity)
+- GET /api/v1/system/status (non-sensitive API status)
+- GET /api/v1/auth/csrf (bootstrap antiforgery cookies)
+- POST /api/v1/auth/login (body userName/password and X-XSRF-TOKEN header)
+- GET /api/v1/auth/session (authenticated current scopes/permissions)
+- POST /api/v1/auth/logout (authenticated and antiforgery header)
+- GET /api/v1/system/access-check (authenticated global users.manage permission required)
 
-`/health/live` should be OK even when SQL is down. `/health/ready` is 503 until configured SQL Server is reachable.
+## Database and initial admin
 
-On Windows, Development defaults to a local SQL Server LocalDB connection (not a real clinical DB). For Docker SQL Server: set a strong `MSSQL_SA_PASSWORD` locally and run `docker compose -f compose.sqlserver.yaml up -d`. Set `ConnectionStrings__Hemo` in your environment (or user-secrets) with **a separate least-privilege app login**, never `sa`. The Docker port is loopback-only for local development. Do not commit credentials.
+The proposed 88-table Hemo SQL Server baseline is now versioned at `database/reference/Hemo_Database_SQLServer_2022.sql` and is a **prerequisite** for identity endpoints. Its sec.* tables are the DDL source of truth; EF excludes those from migrations to prevent duplicate objects. The baseline is intended ONLY for a fresh database; GitHub Actions now tests it on disposable SQL Server 2022. This does not mean it has passed hospital clinical validation. Do not use EnsureCreated or modify existing production schemas. Set ConnectionStrings__Hemo securely (user secrets / environment, least-privileged application identity).
 
-## Architecture
+There is **no default admin password**. After applying the baseline, set HEMO_BOOTSTRAP_USERNAME, HEMO_BOOTSTRAP_DISPLAY_NAME, HEMO_BOOTSTRAP_PASSWORD (minimum 16 chars including upper, lower, digit, symbol) in your secure shell environment. Then explicitly run:
 
-`Hemo.Domain` -> `Hemo.Application` -> `Hemo.Infrastructure` -> `Hemo.Api`. Stage 1 is **infrastructure only**: no login, patient data, business workflows, or fake SQL persistence. Schema reference must be reconciled with EF entities before initial migration; never run `EnsureCreated` on a clinical system.
+```bash
+dotnet run --project src/Hemo.Api -- --bootstrap-system-admin
+```
 
-See `docs/ADR-0001-architecture.md` and `docs/STAGE1-ACCEPTANCE.md`. Frontend is in the separate `sholehamed/hemo-frontend` repository.
+This CLI operation refuses when an active SYSTEM_ADMIN already exists. Never commit credentials or patient data. Existing `compose.sqlserver.yaml` is an optional local SQL Server container; it does not create the schema.
+
+For architecture, security tradeoffs and next steps see `docs/ADR-0001-architecture.md`, `docs/ADR-0002-authentication.md` and `docs/STAGE2A-ACCEPTANCE.md`.

@@ -1,0 +1,42 @@
+name: Hemo SQL Server Integration
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  baseline-and-auth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Start isolated SQL Server 2022
+        shell: bash
+        run: |
+          set -euo pipefail
+          SQL_PASSWORD="Hemo_$(openssl rand -hex 20)_Aa9!"
+          echo "::add-mask::$SQL_PASSWORD"
+          echo "HEMO_CI_SQL_PASSWORD=$SQL_PASSWORD" >> "$GITHUB_ENV"
+          docker run -d --name hemo-ci-sql --memory=3g \
+            -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD="$SQL_PASSWORD" \
+            -p 127.0.0.1:14333:1433 mcr.microsoft.com/mssql/server:2022-latest
+      - name: Execute full DDL, bootstrap admin and BFF session tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          export HEMO_CI_SQL_CONNECTION="Server=127.0.0.1,14333;Database=master;User Id=sa;Password=$HEMO_CI_SQL_PASSWORD;Encrypt=True;TrustServerCertificate=True;Connect Timeout=3"
+          dotnet test tests/Hemo.Api.IntegrationTests/Hemo.Api.IntegrationTests.csproj \
+            -c Release --filter "Category=SqlServer" --logger "trx;LogFileName=sql-integration.trx"
+      - name: SQL Server container logs on failure
+        if: failure()
+        run: docker logs hemo-ci-sql --tail 120 2>&1 | sed -E 's/(Password=)[^;[:space:]]+/\1***/g'
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sql-server-integration-results
+          path: '**/TestResults/*.trx'
+          if-no-files-found: ignore

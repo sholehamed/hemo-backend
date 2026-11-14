@@ -164,6 +164,106 @@ public sealed class SqlServerIdentityRoundTripTests
             .Split(';')[0].Substring("XSRF-TOKEN=".Length);
         var freshToken = Uri.UnescapeDataString(freshCookie);
 
+        // ST-03: real SQL Server authorization across two facilities and departments.
+        async Task<HttpResponseMessage> PostAdminAsync(string uri, object value)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, uri)
+            { Content = JsonContent.Create(value) };
+            request.Headers.TryAddWithoutValidation("X-XSRF-TOKEN", freshToken);
+            return await client.SendAsync(request);
+        }
+
+        async Task<long> CreateOrgAsync(string uri, object value)
+        {
+            using var response = await PostAdminAsync(uri, value);
+            Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+            var data = await response.Content.ReadFromJsonAsync<JsonElement>();
+            return data.GetProperty("id").GetInt64();
+        }
+
+        var facilityA = await CreateOrgAsync("/api/v1/admin/organization/facilities",
+            new { code = "ST03-HOSP-A", name = "Hospital A" });
+        var facilityB = await CreateOrgAsync("/api/v1/admin/organization/facilities",
+            new { code = "ST03-HOSP-B", name = "Hospital B" });
+        var deptA1 = await CreateOrgAsync("/api/v1/admin/organization/departments",
+            new { facilityId = facilityA, code = "ICU", name = "ICU A", parentDepartmentId = (long?)null });
+        var deptA2 = await CreateOrgAsync("/api/v1/admin/organization/departments",
+            new { facilityId = facilityA, code = "ER", name = "ER A", parentDepartmentId = (long?)null });
+        var deptB1 = await CreateOrgAsync("/api/v1/admin/organization/departments",
+            new { facilityId = facilityB, code = "ICU", name = "ICU B", parentDepartmentId = (long?)null });
+
+        using var createdUser = await PostAdminAsync("/api/v1/admin/users/",
+            new { userName = "scoped_admission", displayName = "Scoped Admission",
+                  initialPassword = "Scoped-Ci_2026-Str0ng!" });
+        Assert.Equal(HttpStatusCode.Created, createdUser.StatusCode);
+        var userBody = await createdUser.Content.ReadFromJsonAsync<JsonElement>();
+        var scopedUserId = userBody.GetProperty("id").GetInt64();
+
+        long admissionRoleId;
+        await using (var db = new HemoDbContext(options))
+        {
+            admissionRoleId = await db.Roles.Where(r => r.Code == "ADMISSION")
+                .Select(r => r.RoleId).SingleAsync();
+        }
+
+        using var assignment = await PostAdminAsync(
+            $"/api/v1/admin/users/{scopedUserId}/grants",
+            new { roleId = admissionRoleId, facilityId = (long?)facilityA,
+                  departmentId = (long?)deptA1 });
+        Assert.Equal(HttpStatusCode.Created, assignment.StatusCode);
+
+        // The backend validates each relationship instead of trusting frontend options.
+        using var illegalGrant = await PostAdminAsync(
+            $"/api/v1/admin/users/{scopedUserId}/grants",
+            new { roleId = admissionRoleId, facilityId = (long?)facilityB,
+                  departmentId = (long?)deptA1 });
+        Assert.Equal(HttpStatusCode.BadRequest, illegalGrant.StatusCode);
+
+        using var scopedClient = factory.CreateClient(new WebApplicationFactoryClientOptions
+        { AllowAutoRedirect = false, HandleCookies = true });
+        using var newCsrf = await scopedClient.GetAsync("/api/v1/auth/csrf");
+        var scopedToken = Uri.UnescapeDataString(newCsrf.Headers.GetValues("Set-Cookie")
+            .First(x => x.StartsWith("XSRF-TOKEN=", StringComparison.Ordinal))
+            .Split(';')[0].Substring("XSRF-TOKEN=".Length));
+
+        using var scopedLogin = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/login")
+        {
+            Content = JsonContent.Create(new
+            {
+                userName = "scoped_admission", password = "Scoped-Ci_2026-Str0ng!"
+            })
+        };
+        scopedLogin.Headers.TryAddWithoutValidation("X-XSRF-TOKEN", scopedToken);
+        using var signedInScoped = await scopedClient.SendAsync(scopedLogin);
+        Assert.Equal(HttpStatusCode.NoContent, signedInScoped.StatusCode);
+
+        using var permitted = await scopedClient.GetAsync(
+            $"/api/v1/organization/facilities/{facilityA}/access-check?departmentId={deptA1}");
+        using var otherDept = await scopedClient.GetAsync(
+            $"/api/v1/organization/facilities/{facilityA}/access-check?departmentId={deptA2}");
+        using var otherHospital = await scopedClient.GetAsync(
+            $"/api/v1/organization/facilities/{facilityB}/access-check?departmentId={deptB1}");
+        Assert.Equal(HttpStatusCode.OK, permitted.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, otherDept.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, otherHospital.StatusCode);
+
+        using var cannotManage = await scopedClient.GetAsync("/api/v1/admin/users/");
+        Assert.Equal(HttpStatusCode.Forbidden, cannotManage.StatusCode);
+
+        using var disabled = await PostAdminAsync(
+            $"/api/v1/admin/users/{scopedUserId}/deactivate", new { });
+        Assert.Equal(HttpStatusCode.NoContent, disabled.StatusCode);
+        using var revoked = await scopedClient.GetAsync("/api/v1/auth/session");
+        Assert.Equal(HttpStatusCode.Unauthorized, revoked.StatusCode);
+
+        await using (var auditDb = new HemoDbContext(options))
+        {
+            Assert.True(await auditDb.AuditEvents.AnyAsync(
+                x => x.EntityType == "UserRole" && x.ActionType == "Assigned"));
+            Assert.True(await auditDb.UserSessions.AnyAsync(
+                x => x.AccountUserId == scopedUserId && x.RevokedAt != null));
+        }
+
         using var logout = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/logout")
         {
             Content = JsonContent.Create(new { })

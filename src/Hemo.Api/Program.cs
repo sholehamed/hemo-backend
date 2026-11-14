@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Hemo.Api.Security;
+using Hemo.Api.Patients;
 using Hemo.Infrastructure;
 using Hemo.Infrastructure.Persistence;
 using Hemo.Infrastructure.Security;
@@ -81,6 +82,7 @@ app.MapGet("/api/v1/system/status", (HttpContext context) =>
 app.MapAuthEndpoints();
 app.MapOrganizationEndpoints();
 app.MapUserAdminEndpoints();
+app.MapAdmissionEndpoints();
 
 app.Run();
 

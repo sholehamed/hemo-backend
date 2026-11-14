@@ -1,4 +1,5 @@
 using Hemo.Infrastructure.Security;
+using Hemo.Infrastructure.Patients;
 using Hemo.Infrastructure.Organization;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,6 +11,13 @@ namespace Hemo.Infrastructure.Persistence;
 /// </summary>
 public sealed class HemoDbContext(DbContextOptions<HemoDbContext> options) : DbContext(options)
 {
+    public DbSet<Patient> Patients => Set<Patient>();
+    public DbSet<PatientIdentifier> PatientIdentifiers => Set<PatientIdentifier>();
+    public DbSet<Encounter> Encounters => Set<Encounter>();
+    public DbSet<EncounterLocation> EncounterLocations => Set<EncounterLocation>();
+    public DbSet<Wristband> Wristbands => Set<Wristband>();
+    public DbSet<IdentityVerification> IdentityVerifications => Set<IdentityVerification>();
+
     public DbSet<Facility> Facilities => Set<Facility>();
     public DbSet<Department> Departments => Set<Department>();
     public DbSet<Bed> Beds => Set<Bed>();
@@ -24,6 +32,7 @@ public sealed class HemoDbContext(DbContextOptions<HemoDbContext> options) : DbC
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.MapOrganization();
+        modelBuilder.MapPatients();
 
         var sessions = modelBuilder.Entity<HemoUserSession>();
         sessions.ToTable("UserSession", "sec", table => table.ExcludeFromMigrations());

@@ -1,3 +1,6 @@
+using Hemo.Domain.Organization;
+using Hemo.Domain.Patients;
+using Hemo.Domain.Security;
 using Hemo.Infrastructure.Organization;
 using Hemo.Infrastructure.Persistence;
 using Hemo.Infrastructure.Security;

@@ -1,3 +1,6 @@
+using Hemo.Domain.Organization;
+using Hemo.Domain.Patients;
+using Hemo.Domain.Security;
 using System.Data;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -10,7 +13,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Hemo.Infrastructure.Patients;
 
 /// <summary>Persistent admission use-cases. Resource authorization is performed at API boundary.</summary>
-public sealed class AdmissionService(HemoDbContext db, HemoAuditWriter audit)
+public sealed class AdmissionService(HemoDbContext db, HemoAuditWriter audit) : IAdmissionStore
 {
     private IQueryable<AdmissionRow> Rows(long facilityId, long departmentId,
         long? encounterId = null, string? search = null) =>

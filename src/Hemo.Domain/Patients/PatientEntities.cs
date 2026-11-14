@@ -1,4 +1,4 @@
-namespace Hemo.Infrastructure.Patients;
+namespace Hemo.Domain.Patients;
 
 public sealed class Patient
 {

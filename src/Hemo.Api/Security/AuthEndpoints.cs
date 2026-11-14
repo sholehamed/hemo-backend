@@ -1,3 +1,6 @@
+using Hemo.Domain.Organization;
+using Hemo.Domain.Patients;
+using Hemo.Domain.Security;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using Hemo.Infrastructure.Persistence;

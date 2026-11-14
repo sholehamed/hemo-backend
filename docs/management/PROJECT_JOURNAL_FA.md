@@ -1,7 +1,7 @@
 # Hemo | دفتر ثبت پیشرفت و تحویل بین جلسات
 
-## وضعیت فعلی (2026-11-12)
-**آخرین مرحله Merge شده:** ST-02A. **ST-02B on PR #4:** Org EF mapping, baseline preflight/version and SQL metadata checks passed CI; pending merge. سپس ST-03 و ST-04.  
+## وضعیت فعلی (2026-11-14)
+**آخرین مرحله Merge شده:** ST-03. ST-02B PR #4 و ST-03 PR #5 در دو ریپو Merge شده‌اند. **ST-04 PR #6 باز است:** SQL integration 1/1 و Backend 23/23 سبز؛ Frontend Production Build/Smoke سبز؛ E2E واقعی مرورگر و تأیید بالینی باقی‌اند.  
 **ریپو اصلی برنامه:** `hemo-backend/docs/README.md`.  
 **گفتگو/جلسه تازه باید از:** [CURRENT_STATUS_FA](CURRENT_STATUS_FA.md) و [NEXT_ITERATION_FA](NEXT_ITERATION_FA.md) و [ROADMAP_FA](ROADMAP_FA.md) شروع شود.
 
@@ -12,6 +12,10 @@
 | 2026-11-12 | ST-01 bootstrap مستقل | [PR #1](https://github.com/sholehamed/hemo-backend/pull/1) | [PR #1](https://github.com/sholehamed/hemo-frontend/pull/1) | Merge و CI سبز |
 | 2026-11-12 | ST-02A BFF/Identity/CSRF | [PR #2](https://github.com/sholehamed/hemo-backend/pull/2) | [PR #2](https://github.com/sholehamed/hemo-frontend/pull/2) | Merge و CI سبز؛ SQL auth E2E سبز |
 | 2026-11-12 | تجمیع اسناد، نقشه راه، ماتریس صفحه و چک‌لیست | این PR مستندسازی | PR ارجاع Frontend | فقط مستندات، بدون تغییر قابلیت بالینی |
+
+| 2026-11-14 | ST-02B database contract | [PR #4](https://github.com/sholehamed/hemo-backend/pull/4) | [PR #4](https://github.com/sholehamed/hemo-frontend/pull/4) | Merge، CI و SQL Server سبز |
+| 2026-11-14 | ST-03 organization access | [PR #5](https://github.com/sholehamed/hemo-backend/pull/5) | [PR #5](https://github.com/sholehamed/hemo-frontend/pull/5) | Merge؛ SQL تست cross-facility / cross-department / revocation سبز |
+| 2026-11-14 | ST-04 admission & identity | [PR #6](https://github.com/sholehamed/hemo-backend/pull/6) | [PR #6](https://github.com/sholehamed/hemo-frontend/pull/6) | در حال بررسی؛ 23 Backend + 1 SQL integration + frontend build/smoke سبز؛ Browser E2E لازم است |
 
 ## قالب افزودن رکورد جدید (در انتهای این فایل)
 ```md

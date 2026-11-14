@@ -42,7 +42,7 @@ public sealed class HemoAccessService(HemoDbContext db)
         long userId, string code, CancellationToken ct = default)
     {
         var grants = await GetGrantsAsync(userId, ct);
-        return grants.Any(x => x.FacilityId is null && x.DepartmentId is null
+        return grants.Any(x => x.RoleCode == "SYSTEM_ADMIN" && x.FacilityId is null && x.DepartmentId is null
             && x.Permissions.Contains(code, StringComparer.Ordinal));
     }
 }

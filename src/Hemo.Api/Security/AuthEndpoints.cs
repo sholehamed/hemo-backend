@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Security.Cryptography;
 using Hemo.Infrastructure.Persistence;
 using Hemo.Infrastructure.Security;
 using Microsoft.AspNetCore.Antiforgery;
@@ -64,10 +65,29 @@ public static class AuthEndpoints
                 await db.SaveChangesAsync(ct);
             }
 
+            // A server-side session ledger lets administrators revoke cookies immediately.
+            var now = DateTime.UtcNow;
+            var session = new HemoUserSession
+            {
+                AccountUserId = user.AccountUserId,
+                RefreshTokenHash = RandomNumberGenerator.GetBytes(32),
+                IssuedAt = now, ExpiresAt = now.AddHours(8),
+                ClientIp = http.Connection.RemoteIpAddress?.ToString()
+            };
+            db.UserSessions.Add(session);
+            await db.SaveChangesAsync(ct);
+            db.AuditEvents.Add(new AuditEvent
+            {
+                AccountUserId = user.AccountUserId,
+                EntityType = "Session", EntityId = session.UserSessionId,
+                ActionType = "Login", OccurredAt = now
+            });
+            await db.SaveChangesAsync(ct);
             var claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, user.AccountUserId.ToString()),
-                new Claim(ClaimTypes.Name, user.UserName)
+                new Claim(ClaimTypes.Name, user.UserName),
+                new Claim("hemo.session", session.UserSessionId.ToString())
             };
             var identity = new ClaimsIdentity(claims, SessionSecurity.Scheme);
             await http.SignInAsync(SessionSecurity.Scheme, new ClaimsPrincipal(identity),
@@ -93,11 +113,27 @@ public static class AuthEndpoints
                 user.AccountUserId, user.UserName, user.DisplayName, grants));
         }).RequireAuthorization();
 
-        group.MapPost("/logout", async (HttpContext http, IAntiforgery anti) =>
+        group.MapPost("/logout", async (HttpContext http, IAntiforgery anti,
+            HemoDbContext db, CancellationToken ct) =>
         {
             if (!await ValidCsrfAsync(http, anti))
                 return Results.BadRequest(new { code = "invalid_csrf" });
 
+            if (long.TryParse(http.User.FindFirst("hemo.session")?.Value, out var sessionId))
+            {
+                var session = await db.UserSessions.SingleOrDefaultAsync(
+                    s => s.UserSessionId == sessionId, ct);
+                if (session is not null && session.RevokedAt is null)
+                {
+                    session.RevokedAt = DateTime.UtcNow;
+                    db.AuditEvents.Add(new AuditEvent
+                    {
+                        AccountUserId = session.AccountUserId, EntityType = "Session",
+                        EntityId = sessionId, ActionType = "Logout", OccurredAt = DateTime.UtcNow
+                    });
+                    await db.SaveChangesAsync(ct);
+                }
+            }
             await http.SignOutAsync(SessionSecurity.Scheme);
             http.Response.Headers.CacheControl = "no-store";
             return Results.NoContent();

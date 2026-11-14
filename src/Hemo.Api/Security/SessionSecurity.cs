@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Cryptography;
 using System.Security.Claims;
 using Hemo.Infrastructure.Persistence;
 using Hemo.Infrastructure.Security;
@@ -20,6 +21,8 @@ public static class SessionSecurity
     {
         services.AddScoped<IPasswordHasher<AccountUser>, PasswordHasher<AccountUser>>();
         services.AddScoped<HemoAccessService>();
+        services.AddScoped<ResourceAccessService>();
+        services.AddScoped<HemoAuditWriter>();
 
         services.AddAuthentication(Scheme)
             .AddCookie(Scheme, options =>
@@ -53,9 +56,20 @@ public static class SessionSecurity
                     }
 
                     var db = ctx.HttpContext.RequestServices.GetRequiredService<HemoDbContext>();
+                    var sessionText = ctx.Principal?.FindFirst("hemo.session")?.Value;
+                    if (!long.TryParse(sessionText, out var sessionId))
+                    {
+                        ctx.RejectPrincipal();
+                        return;
+                    }
+
                     var isActive = await db.AccountUsers.AsNoTracking()
                         .AnyAsync(u => u.AccountUserId == userId && u.IsActive);
-                    if (!isActive)
+                    var validSession = await db.UserSessions.AsNoTracking()
+                        .AnyAsync(x => x.UserSessionId == sessionId
+                            && x.AccountUserId == userId
+                            && x.RevokedAt == null && x.ExpiresAt > DateTime.UtcNow);
+                    if (!isActive || !validSession)
                         ctx.RejectPrincipal();
                 };
             });

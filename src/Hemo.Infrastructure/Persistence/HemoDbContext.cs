@@ -13,6 +13,8 @@ public sealed class HemoDbContext(DbContextOptions<HemoDbContext> options) : DbC
     public DbSet<Facility> Facilities => Set<Facility>();
     public DbSet<Department> Departments => Set<Department>();
     public DbSet<Bed> Beds => Set<Bed>();
+    public DbSet<HemoUserSession> UserSessions => Set<HemoUserSession>();
+    public DbSet<AuditEvent> AuditEvents => Set<AuditEvent>();
     public DbSet<AccountUser> AccountUsers => Set<AccountUser>();
     public DbSet<HemoRole> Roles => Set<HemoRole>();
     public DbSet<HemoPermission> Permissions => Set<HemoPermission>();
@@ -22,6 +24,35 @@ public sealed class HemoDbContext(DbContextOptions<HemoDbContext> options) : DbC
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.MapOrganization();
+
+        var sessions = modelBuilder.Entity<HemoUserSession>();
+        sessions.ToTable("UserSession", "sec", table => table.ExcludeFromMigrations());
+        sessions.HasKey(x => x.UserSessionId);
+        sessions.Property(x => x.RefreshTokenHash).HasColumnType("varbinary(32)").IsRequired();
+        sessions.Property(x => x.IssuedAt).HasColumnType("datetime2(3)")
+            .HasDefaultValueSql("SYSUTCDATETIME()");
+        sessions.Property(x => x.ExpiresAt).HasColumnType("datetime2(3)");
+        sessions.Property(x => x.RevokedAt).HasColumnType("datetime2(3)");
+        sessions.Property(x => x.CreatedAt).HasColumnType("datetime2(3)")
+            .HasDefaultValueSql("SYSUTCDATETIME()");
+        sessions.Property(x => x.ClientIp).HasMaxLength(45).IsUnicode(false);
+        sessions.Property(x => x.RowVersion).IsRowVersion();
+        sessions.HasOne<AccountUser>().WithMany().HasForeignKey(x => x.AccountUserId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        var audit = modelBuilder.Entity<AuditEvent>();
+        audit.ToTable("AuditEvent", "audit", table => table.ExcludeFromMigrations());
+        audit.HasKey(x => x.AuditEventId);
+        audit.Property(x => x.EntityType).HasMaxLength(120).IsUnicode(false);
+        audit.Property(x => x.ActionType).HasMaxLength(80).IsUnicode(false);
+        audit.Property(x => x.RemoteAddress).HasMaxLength(45).IsUnicode(false);
+        audit.Property(x => x.EventDetails).HasMaxLength(1600);
+        audit.Property(x => x.OccurredAt).HasColumnType("datetime2(3)")
+            .HasDefaultValueSql("SYSUTCDATETIME()");
+        audit.HasOne<AccountUser>().WithMany().HasForeignKey(x => x.AccountUserId)
+            .OnDelete(DeleteBehavior.NoAction);
+        audit.HasOne<Facility>().WithMany().HasForeignKey(x => x.FacilityId)
+            .OnDelete(DeleteBehavior.NoAction);
         var users = modelBuilder.Entity<AccountUser>();
         users.ToTable("AccountUser", "sec", table => table.ExcludeFromMigrations());
         users.HasKey(x => x.AccountUserId);

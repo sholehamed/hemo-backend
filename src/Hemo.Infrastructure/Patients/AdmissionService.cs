@@ -12,7 +12,8 @@ namespace Hemo.Infrastructure.Patients;
 /// <summary>Persistent admission use-cases. Resource authorization is performed at API boundary.</summary>
 public sealed class AdmissionService(HemoDbContext db, HemoAuditWriter audit)
 {
-    private IQueryable<AdmissionRow> Rows(long facilityId, long departmentId) =>
+    private IQueryable<AdmissionRow> Rows(long facilityId, long departmentId,
+        long? encounterId = null, string? search = null) =>
         from encounter in db.Encounters
         join location in db.EncounterLocations on encounter.EncounterId equals location.EncounterId
         join patient in db.Patients on encounter.PatientId equals patient.PatientId
@@ -22,6 +23,11 @@ public sealed class AdmissionService(HemoDbContext db, HemoAuditWriter audit)
         where encounter.FacilityId == facilityId
             && location.DepartmentId == departmentId && location.ToAt == null
             && encounter.Status != "Cancelled"
+            && (encounterId == null || encounter.EncounterId == encounterId)
+            && (search == null || patient.FirstName.Contains(search)
+                || patient.LastName.Contains(search)
+                || (patient.NationalId != null && patient.NationalId.Contains(search)))
+        orderby encounter.AdmittedAt descending, encounter.EncounterId descending
         select new AdmissionRow(encounter, location, patient, band);
 
     private sealed record AdmissionRow(Encounter Encounter, EncounterLocation Location,
@@ -50,28 +56,18 @@ public sealed class AdmissionService(HemoDbContext db, HemoAuditWriter audit)
         string? search, int page, CancellationToken ct)
     {
         page = Math.Clamp(page, 1, 10000);
-        var query = Rows(facilityId, departmentId).AsNoTracking();
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var q = search.Trim();
-            if (q.Length > 100) q = q[..100];
-            query = query.Where(x => x.Patient.FirstName.Contains(q) ||
-                x.Patient.LastName.Contains(q) || (x.Patient.NationalId != null
-                && x.Patient.NationalId.Contains(q)));
-        }
-
+        var query = Rows(facilityId, departmentId, search: string.IsNullOrWhiteSpace(search)
+            ? null : search.Trim()[..Math.Min(100, search.Trim().Length)]).AsNoTracking();
         var count = await query.CountAsync(ct);
-        var rows = await query.OrderByDescending(x => x.Encounter.AdmittedAt)
-            .ThenByDescending(x => x.Encounter.EncounterId)
-            .Skip((page - 1) * 20).Take(20).ToListAsync(ct);
+        var rows = await query.Skip((page - 1) * 20).Take(20).ToListAsync(ct);
         return new AdmissionPage(rows.Select(ToView).ToArray(), page, 20, count);
     }
 
     public async Task<AdmissionView?> GetAsync(long facilityId, long departmentId,
         long encounterId, CancellationToken ct)
     {
-        var row = await Rows(facilityId, departmentId).AsNoTracking()
-            .SingleOrDefaultAsync(x => x.Encounter.EncounterId == encounterId, ct);
+        var row = await Rows(facilityId, departmentId, encounterId).AsNoTracking()
+            .SingleOrDefaultAsync(ct);
         return row is null ? null : ToView(row);
     }
 
@@ -192,8 +188,8 @@ public sealed class AdmissionService(HemoDbContext db, HemoAuditWriter audit)
             (input.BirthDate.HasValue && input.BirthDate.Value > DateOnly.FromDateTime(DateTime.UtcNow)))
             return AdmissionOperation<AdmissionView>.Fail("invalid_input");
 
-        var row = await Rows(facilityId, departmentId)
-            .SingleOrDefaultAsync(x => x.Encounter.EncounterId == encounterId, ct);
+        var row = await Rows(facilityId, departmentId, encounterId)
+            .SingleOrDefaultAsync(ct);
         if (row is null) return AdmissionOperation<AdmissionView>.Fail("not_found");
 
         byte[] expected;
@@ -223,8 +219,8 @@ public sealed class AdmissionService(HemoDbContext db, HemoAuditWriter audit)
         CancellationToken ct)
     {
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
-        var row = await Rows(facilityId, departmentId)
-            .SingleOrDefaultAsync(x => x.Encounter.EncounterId == encounterId, ct);
+        var row = await Rows(facilityId, departmentId, encounterId)
+            .SingleOrDefaultAsync(ct);
         if (row is null) return AdmissionOperation<WristbandView>.Fail("not_found");
         if (row.Encounter.Status != "Admitted")
             return AdmissionOperation<WristbandView>.Fail("invalid_state");
@@ -263,8 +259,8 @@ public sealed class AdmissionService(HemoDbContext db, HemoAuditWriter audit)
             (input.MismatchReason?.Length ?? 0) > 800)
             return AdmissionOperation<IdentityVerificationView>.Fail("invalid_input");
 
-        var row = await Rows(facilityId, departmentId)
-            .SingleOrDefaultAsync(x => x.Encounter.EncounterId == encounterId, ct);
+        var row = await Rows(facilityId, departmentId, encounterId)
+            .SingleOrDefaultAsync(ct);
         if (row is null) return AdmissionOperation<IdentityVerificationView>.Fail("not_found");
         if (row.Encounter.Status != "Admitted")
             return AdmissionOperation<IdentityVerificationView>.Fail("invalid_state");

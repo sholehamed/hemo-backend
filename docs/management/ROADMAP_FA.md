@@ -8,9 +8,9 @@
 | ST-00 | استخراج و تحلیل پروتوتایپ | DONE (تحلیل سورس) | فهرست 62 صفحه / 15 جریان |
 | ST-01 | Bootstrap زیرساخت | DONE | ASP.NET Core + Angular + CI |
 | ST-02A | هویت و BFF پایه | DONE (محدود) | Cookie/CSRF/Login و CRUD **هنوز نه** |
-| ST-02B | تثبیت SQL baseline و قرارداد داده | IMPLEMENTED (contract; migrations evolution pending) | نصب schema تکرارپذیر، EF mappings، Seed و migration policy |
-| ST-03 | مجوز، امنیت و سازمان | NEXT | Facility/Department authorization + مدیریت حساب + Audit |
-| ST-04 | پذیرش و پرونده | PLANNED | Patient / Encounter / Wristband / IdentityVerification |
+| ST-02B | تثبیت SQL baseline و قرارداد داده | DONE (محدود: migration ارتقایی باقیمانده) | نصب schema تکرارپذیر، EF mappings، Seed و migration policy |
+| ST-03 | مجوز، امنیت و سازمان | DONE (پایه؛ موارد امنیتی باز) | Facility/Department authorization + مدیریت حساب + Audit |
+| ST-04 | پذیرش و پرونده | IN REVIEW (SQL+Build سبز؛ Browser E2E/SOP باز) | Patient / Encounter / Wristband / IdentityVerification |
 | ST-05 | درخواست خون و تأیید | PLANNED | Request / Items / Approval / Task با نقش‌های مشترک |
 | ST-06 | موجودی و Crossmatch | PLANNED | Stock / Reservation / Crossmatch / Compatibility workflow |
 | ST-07 | صدور و لجستیک | PLANNED | Issue / Dispatch / Receipt / Return / Waste / Thaw / Transfers |

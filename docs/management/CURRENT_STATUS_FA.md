@@ -1,5 +1,5 @@
 # Hemo — وضعیت واقعی و محل ادامه کار
-**به‌روزرسانی:** 2026-11-12 · **وضعیت:** Stage 01 و Stage 02A در main، Stage 02B/03 و جریان‌های بالینی باقی‌مانده.
+**به‌روزرسانی:** 2026-11-14 · **وضعیت:** ST-02B و ST-03 در main ادغام شده‌اند؛ ST-04 در PR #6 با Build و SQL Integration سبز و در انتظار تأیید Merge است.
 
 ## وضعیت مستند و قابل استناد
 | شناسه | وضع | شاهد GitHub | توضیح |
@@ -7,9 +7,10 @@
 | ST-00 — بررسی پروتوتایپ | مستند شده | 62 فایل HTML، تحلیل [مرجع](../reference/HEMO_WORKFLOWS_AND_DATA_MODEL_FA.md) | تحلیل بر اساس سورس، نه مرورگر/E2E |
 | ST-01 — زیرساخت مستقل | **Merged** | Backend [PR #1](https://github.com/sholehamed/hemo-backend/pull/1)، Frontend [PR #1](https://github.com/sholehamed/hemo-frontend/pull/1) | .NET 10 چهارلایه، Angular 22، health/status، CI |
 | ST-02A — BFF و هویت پایه | **Merged** | Backend [PR #2](https://github.com/sholehamed/hemo-backend/pull/2)، Frontend [PR #2](https://github.com/sholehamed/hemo-frontend/pull/2) | Cookie، CSRF، login/logout/session، sec.*، منوی مبتنی بر role |
-| ST-02B — یکپارچه‌سازی schema و seed | **Implemented; CI green (review pending)** | [دستور کار](NEXT_ITERATION_FA.md) | تثبیت مدل DB و راه‌اندازی تکرارپذیر؛ بدون حذف داده |
-| ST-03 — ایمن‌سازی و scope سازمانی | **Next** | [Roadmap](ROADMAP_FA.md) | دسترسی مرکز/بخش، audit، مدیریت حساب‌ها، session revocation |
-| ST-04 ... ST-13 | **Not started** | [Roadmap](ROADMAP_FA.md) | Vertical slices و آمادگی استقرار |
+| ST-02B — قرارداد پایگاه داده | **Merged** | Backend/Frontend PR #4 | تطبیق نگاشت org/sec و SQL Baseline، Version/preflight؛ Migration ارتقایی هنوز جداگانه لازم است |
+| ST-03 — مجوز و سازمان | **Merged (foundation)** | Backend/Frontend PR #5 | کنترل scope بخش/مرکز و revocation SQL و مدیریت اولیه؛ MFA، lockout و تغییر رمز اجباری مانده‌اند |
+| ST-04 — پذیرش و هویت | **Implemented; CI green, PR #6 open** | Backend/Frontend PR #6 | ثبت/جست‌وجو/ویرایش، Wristband و تطبیق هویت در SQL؛ Browser E2E و تأیید SOP بالینی مانده‌اند |
+| ST-05 ... ST-13 | **Not started** | [Roadmap](ROADMAP_FA.md) | جریان‌های درخواست خون تا استقرار |
 
 ## نتیجه تست ثبت‌شده قبل از این سند
 - Backend main: Release build و **10 تست معمول** موفق؛ شاخه PR #2 نیز **تست یکپارچه SQL Server 2022 (1/1)** را با اجرای Baseline کامل و Bootstrap/Login/Permission/Logout گذرانده است؛ [Workflow SQL](https://github.com/sholehamed/hemo-backend/actions/workflows/sql-server-integration.yml).

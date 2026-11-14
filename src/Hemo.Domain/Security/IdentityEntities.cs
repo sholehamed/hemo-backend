@@ -1,4 +1,4 @@
-namespace Hemo.Infrastructure.Security;
+namespace Hemo.Domain.Security;
 
 // The SQL baseline is the schema owner. These EF models map its existing sec tables.
 public sealed class AccountUser

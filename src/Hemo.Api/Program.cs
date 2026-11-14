@@ -79,6 +79,8 @@ app.MapGet("/api/v1/system/status", (HttpContext context) =>
     .Produces<SystemStatusResponse>(StatusCodes.Status200OK);
 
 app.MapAuthEndpoints();
+app.MapOrganizationEndpoints();
+app.MapUserAdminEndpoints();
 
 app.Run();
 

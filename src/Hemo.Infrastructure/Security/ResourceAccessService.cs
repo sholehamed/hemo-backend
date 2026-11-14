@@ -1,3 +1,4 @@
+using Hemo.Application.Abstractions;
 using Hemo.Domain.Organization;
 using Hemo.Domain.Patients;
 using Hemo.Domain.Security;
@@ -8,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Hemo.Infrastructure.Security;
 
 /// <summary>Evaluates a permission against the actual facility/department resource.</summary>
-public sealed class ResourceAccessService(HemoAccessService grants, HemoDbContext db)
+public sealed class ResourceAccessService(HemoAccessService grants, HemoDbContext db) : IResourcePermission
 {
     public async Task<bool> CanAsync(long userId, string permission, long facilityId,
         long? departmentId, CancellationToken ct = default)

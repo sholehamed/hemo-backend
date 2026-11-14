@@ -1,3 +1,5 @@
+using Hemo.Application.Abstractions;
+using Hemo.Application.Patients;
 using Hemo.Infrastructure.Persistence;
 using Hemo.Infrastructure.Patients;
 using Microsoft.EntityFrameworkCore;
@@ -17,7 +19,8 @@ public static class DependencyInjection
             throw new InvalidOperationException(
                 "ConnectionStrings:Hemo must be provided through configuration or secrets.");
 
-        services.AddScoped<AdmissionService>();
+        services.AddScoped<IAdmissionStore, AdmissionService>();
+        services.AddScoped<IResourcePermission, Hemo.Infrastructure.Security.ResourceAccessService>();
         services.AddDbContext<HemoDbContext>(options =>
             options.UseSqlServer(connectionString, sql => sql.CommandTimeout(15)));
 

@@ -1,3 +1,4 @@
+using Hemo.Api.Cqrs;
 using Hemo.Domain.Organization;
 using Hemo.Domain.Patients;
 using Hemo.Domain.Security;
@@ -21,6 +22,7 @@ builder.Services.AddProblemDetails(options =>
 
 builder.Services.AddOpenApi();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddHemoCqrs();
 builder.Services.AddHemoSessionSecurity(builder.Environment.IsDevelopment());
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<HemoDbContext>(

@@ -3,15 +3,23 @@ using Hemo.Infrastructure.Persistence;
 using Hemo.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Xunit;
 
 namespace Hemo.Api.IntegrationTests;
 
 public sealed class DatabaseModelContractTests
 {
-    private readonly IModel _model = new DbContextOptionsBuilder<HemoDbContext>()
-        .UseSqlServer("Server=(local);Database=Hemo;Trusted_Connection=True;TrustServerCertificate=True")
-        .Options is { } options ? new HemoDbContext(options).Model : throw new Exception();
+    private readonly IModel _model = BuildDesignTimeModel();
+
+    private static IModel BuildDesignTimeModel()
+    {
+        var options = new DbContextOptionsBuilder<HemoDbContext>()
+            .UseSqlServer("Server=(local);Database=Hemo;Trusted_Connection=True;TrustServerCertificate=True")
+            .Options;
+        using var db = new HemoDbContext(options);
+        return db.GetService<IDesignTimeModel>().Model;
+    }
 
     [Theory]
     [InlineData(typeof(AccountUser), "sec", "AccountUser")]

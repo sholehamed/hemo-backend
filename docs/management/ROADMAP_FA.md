@@ -3,15 +3,15 @@
 **ترتیب اجرا:** ST-00 → ST-01 → ST-02A → ST-02B → ST-03 → ST-04 → ... → ST-13. هر گام شامل مستندات، تست و PR مستقل است. **ساختن همه Backend و سپس Frontend ممنوع نیست ولی راهبرد پروژه نیست**؛ هر گام باید همزمان قرارداد API و UI مصرف‌کننده را تعیین کند.
 
 ## تصویر کلان
-| مرحله | عنوان | وضعیت 2026-11-12 | خروجی قابل تحویل |
+| مرحله | عنوان | وضعیت 2026-11-14 | خروجی قابل تحویل |
 |---|---|---|---|
 | ST-00 | استخراج و تحلیل پروتوتایپ | DONE (تحلیل سورس) | فهرست 62 صفحه / 15 جریان |
 | ST-01 | Bootstrap زیرساخت | DONE | ASP.NET Core + Angular + CI |
 | ST-02A | هویت و BFF پایه | DONE (محدود) | Cookie/CSRF/Login و CRUD **هنوز نه** |
 | ST-02B | تثبیت SQL baseline و قرارداد داده | DONE (محدود: migration ارتقایی باقیمانده) | نصب schema تکرارپذیر، EF mappings، Seed و migration policy |
 | ST-03 | مجوز، امنیت و سازمان | DONE (پایه؛ موارد امنیتی باز) | Facility/Department authorization + مدیریت حساب + Audit |
-| ST-04 | پذیرش و پرونده | IN REVIEW (SQL+Build سبز؛ Browser E2E/SOP باز) | Patient / Encounter / Wristband / IdentityVerification |
-| ST-05 | درخواست خون و تأیید | PLANNED | Request / Items / Approval / Task با نقش‌های مشترک |
+| ST-04 | پذیرش و پرونده | DONE (فنی؛ SOP/Release امنیتی باز) | Patient / Encounter / Wristband / IdentityVerification |
+| ST-05 | درخواست خون و تأیید | NEXT | Request / Items / Approval / Task با نقش‌های مشترک |
 | ST-06 | موجودی و Crossmatch | PLANNED | Stock / Reservation / Crossmatch / Compatibility workflow |
 | ST-07 | صدور و لجستیک | PLANNED | Issue / Dispatch / Receipt / Return / Waste / Thaw / Transfers |
 | ST-08 | تزریق و پایش | PLANNED | Transfusion / Vitals / Checklist / Signoff |
@@ -46,7 +46,7 @@
 4. Bootstrap صریح SYSTEM_ADMIN بدون رمز پیش‌فرض؛ اجرای SQL Server موقت و E2E auth در CI.
 5. تحویل: PRهای #2، تست SQL سبز؛ محدودیت‌های امنیتی ST-03 هنوز باز.
 
-## ST-02B | قرارداد دیتابیس و Seed (NEXT)
+## ST-02B | قرارداد دیتابیس و Seed (DONE — پایه)
 1. Baseline 88 جدول را به inventory ستون، FK، check، unique/filtered index و dependency تبدیل کن.
 2. بررسی عمیق EF mapping پنج جدول sec با SQL واقعی و سیاست ownership تغییرات: DDL مبنا + migrations بعدی، بدون EnsureCreated.
 3. تصمیم مستند برای SQL bootstrap در محیط خالی و migrations نسخه‌های بعد؛ گارد اجرا روی دیتابیس غیرخالی.
@@ -56,7 +56,7 @@
 7. در Frontend: API contracts، typed DTO/errors، جست‌وجوی پایه و کنترل‌های فرم قابل استفاده مجدد.
 8. معیار خروج: اختلافات EF/DDL صفر یا در ADR ثبت شده، تست SQL و تست Build هر دو سبز.
 
-## ST-03 | سازمان، حساب، مجوز و Audit
+## ST-03 | سازمان، حساب، مجوز و Audit (DONE — پایه)
 1. موجودیت Facility/Department/Bed/Shift و ارتباط و اعتبارسنجی scope را تعریف کن.
 2. سیاست Permission+Resource: هر endpoint روی واقعی‌ترین شناسه Facility/Department/Encounter بررسی شود.
 3. Endpointهای Admin برای کاربران و تخصیص RoleGrant، فعال/غیرفعال، تغییر رمز اولیه/اجباری، قفل و audit ایجاد کن.
@@ -65,7 +65,7 @@
 6. با دو مرکز، دو بخش و نقش هم‌زمان تست کن: دسترسی بین‌مرکزی با URL/ID جعلی حتماً 403/404.
 7. معیار خروج: عدم افشای داده بین scopeها؛ Audit actor/time/action؛ تست CI+browser موفق.
 
-## ST-04 | پذیرش بیمار و هویت
+## ST-04 | پذیرش بیمار و هویت (DONE — فنی؛ SOP باز)
 1. مدل Patient/Identifier/Encounter/EncounterLocation/Wristband/IdentityVerification + قوانین uniqueness در مرکز.
 2. Use-case پذیرش جدید، پرونده بیمار مجهول‌الهویه، اصلاح اطلاعات و ارجاع از HIS (Mock نداریم؛ در نبود integration منبع دستی ثبت می‌شود).
 3. Endpointهای ثبت/ویرایش/جست‌وجو/نمایش جزئیات؛ Pagination و concurrency.

@@ -5,10 +5,10 @@
 
 | فایل مرجع | حوزه | کارکرد استخراج‌شده | فاز مالک اولیه | وضعیت/تذکر |
 |---|---|---|---|---|
-| `admission-dashboard.html` | پذیرش | داشبورد وضعیت پذیرش، میانبر پذیرش سریع، استعلام و وضعیت شناسه‌ها | ST-04 | Angular /admission + API محدوده سازمانی و شمارش؛ ST-04 PR #6؛ Build سبز؛ مرورگر تست نشده |
-| `admission-new-patient.html` | پذیرش | ایجاد مشخصات، بیمار مجهول‌الهویه، پیش‌نمایش مچ‌بند؛ استعلام و ثبت نهایی نمایشی | ST-04 | Angular /admission/new؛ SQL Patient/Encounter/Location + Validation/Concurrency؛ ST-04 PR #6؛ SQL سبز |
-| `admission-identity-check.html` | پذیرش | جست‌وجو با شناسه/بارکد، تطبیق دو شناسه و تأیید یا اعلام مغایرت | ST-04 | Angular /admission/identity؛ Wristband + Verified/Mismatch؛ ST-04 PR #6؛ SQL سبز؛ تأیید SOP مانده |
-| `admission-patient-list.html` | پذیرش | فیلتر بستری‌ها، رهگیری وضعیت، چاپ مچ‌بند و خروجی | ST-04 | Angular /admission/list؛ Search/Pagination/Scope؛ ST-04 PR #6؛ SQL سبز؛ مرورگر تست نشده |
+| `admission-dashboard.html` | پذیرش | داشبورد وضعیت پذیرش، میانبر پذیرش سریع، استعلام و وضعیت شناسه‌ها | ST-04 | Angular /admission + API محدوده سازمانی و شمارش؛ ST-04 PR #6 Merged؛ Chromium E2E سبز |
+| `admission-new-patient.html` | پذیرش | ایجاد مشخصات، بیمار مجهول‌الهویه، پیش‌نمایش مچ‌بند؛ استعلام و ثبت نهایی نمایشی | ST-04 | Angular /admission/new؛ SQL Patient/Encounter/Location + Validation/Concurrency؛ ST-04 PR #6 Merged؛ SQL و Chromium E2E سبز |
+| `admission-identity-check.html` | پذیرش | جست‌وجو با شناسه/بارکد، تطبیق دو شناسه و تأیید یا اعلام مغایرت | ST-04 | Angular /admission/identity؛ Wristband + Verified/Mismatch؛ ST-04 PR #6 Merged؛ Chromium E2E و SQL سبز؛ SOP باز |
+| `admission-patient-list.html` | پذیرش | فیلتر بستری‌ها، رهگیری وضعیت، چاپ مچ‌بند و خروجی | ST-04 | Angular /admission/list؛ Search/Pagination/Scope؛ ST-04 PR #6 Merged؛ Chromium E2E و SQL سبز |
 | `admission-blood-history.html` | پذیرش | استعلام سوابق تزریق، واکنش و هشدارها، همگام‌سازی نمایشی | ST-12 | فقط رفتار پروتوتایپ؛ قابلیت واقعی هنوز پیاده نشده |
 | `admission-discharge-clearance.html` | پذیرش | انتخاب بیمار، چک‌لیست هویت و مدارک تزریق/واکنش، پیش‌نویس و تأیید ترخیص | ST-12 | فقط رفتار پروتوتایپ؛ قابلیت واقعی هنوز پیاده نشده |
 | `admission-his-sync.html` | پذیرش | صف تبادل HIS، لاگ HL7/API، Retry، Test و همگام‌سازی دستی | ST-12 | فقط رفتار پروتوتایپ؛ قابلیت واقعی هنوز پیاده نشده |

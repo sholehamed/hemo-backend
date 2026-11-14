@@ -29,13 +29,13 @@
 | QA-16 | P1 | ST-12 | گزارش رسمی با داده transaction یکی باشد؛ export فقط scope مجاز | Data reconciliation + Security |
 | QA-17 | P0 | ST-13 | Backup/Restore, disaster recovery, E2E whole workflow, clinical signoff | Rehearsal/UAT |
 
-## وضعیت تست اثبات‌شده تا 2026-11-12
+## وضعیت تست اثبات‌شده تا 2026-11-14
 | دسته | اجرا شده | نتیجه |
 |---|---|---|
 | API Smoke/Negative | GitHub Backend PR #2 | ۱۰ تست عادی گذشت |
 | SQL 2022 Baseline/Auth | GitHub Backend PR #2 | یک تست کامل SQL E2E گذشت |
 | Angular Smoke/Production Build | GitHub Frontend PR #2 | ۷ تست + build موفق |
-| Browser E2E Login/Patient | خیر | **Not tested** |
+| Browser E2E Login/Patient | بله؛ Chromium + Angular + ASP.NET Core + SQL موقت | **۱/۱ passed** در ST-04؛ فقط مسیر اصلی |
 | Clinical End-to-End | خیر | **Not implemented** |
 | UAT / بیمارستان / بار واقعی | خیر | **Not tested** |
 

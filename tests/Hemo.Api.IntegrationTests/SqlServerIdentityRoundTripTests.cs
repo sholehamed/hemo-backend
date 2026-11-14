@@ -63,6 +63,40 @@ public sealed class SqlServerIdentityRoundTripTests
             }
         }
 
+        // Physical contract: the complete baseline is installed before authentication.
+        await using (var catalog = connection.CreateCommand())
+        {
+            catalog.CommandText = """
+                SELECT
+                    (SELECT COUNT(*) FROM sys.tables WHERE SCHEMA_NAME(schema_id) IN
+                        ('org','sec','patient','clinical','blood','equip','hv',
+                         'integration','report','cfg','audit')),
+                    (SELECT COUNT(*) FROM sys.foreign_keys WHERE is_ms_shipped=0),
+                    (SELECT COUNT(*) FROM sys.indexes i
+                     JOIN sys.tables t ON i.object_id=t.object_id
+                     WHERE i.type=2 AND t.is_ms_shipped=0);
+                """;
+            await using var reader = await catalog.ExecuteReaderAsync();
+            Assert.True(await reader.ReadAsync());
+            Assert.Equal(88, reader.GetInt32(0));
+            Assert.Equal(203, reader.GetInt32(1));
+            Assert.Equal(259, reader.GetInt32(2));
+        }
+
+        await using (var seedContract = connection.CreateCommand())
+        {
+            seedContract.CommandText = """
+                SELECT (SELECT COUNT(*) FROM sec.Role),
+                       (SELECT COUNT(*) FROM cfg.Setting
+                        WHERE SettingKey='schema.version' AND SettingValue=N'1.0.0'
+                          AND FacilityId IS NULL);
+                """;
+            await using var result = await seedContract.ExecuteReaderAsync();
+            Assert.True(await result.ReadAsync());
+            Assert.Equal(8, result.GetInt32(0));
+            Assert.Equal(1, result.GetInt32(1));
+        }
+
         var hemo = new SqlConnectionStringBuilder(connString) { InitialCatalog = "Hemo" };
         var options = new DbContextOptionsBuilder<HemoDbContext>()
             .UseSqlServer(hemo.ConnectionString).Options;

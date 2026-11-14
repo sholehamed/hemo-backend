@@ -1,7 +1,7 @@
 # Hemo | دفتر ثبت پیشرفت و تحویل بین جلسات
 
 ## وضعیت فعلی (2026-11-12)
-**آخرین مرحله Merge شده:** ST-02A. **مرحله بعد:** ST-02B (تثبیت قرارداد DB)، سپس ST-03 (scope و امنیت)، سپس ST-04 پذیرش.  
+**آخرین مرحله Merge شده:** ST-02A. **ST-02B on PR #4:** Org EF mapping, baseline preflight/version and SQL metadata checks passed CI; pending merge. سپس ST-03 و ST-04.  
 **ریپو اصلی برنامه:** `hemo-backend/docs/README.md`.  
 **گفتگو/جلسه تازه باید از:** [CURRENT_STATUS_FA](CURRENT_STATUS_FA.md) و [NEXT_ITERATION_FA](NEXT_ITERATION_FA.md) و [ROADMAP_FA](ROADMAP_FA.md) شروع شود.
 

@@ -164,8 +164,14 @@ public sealed class AdmissionService(HemoDbContext db, HemoAuditWriter audit)
             audit.Record(actor, facilityId, "Encounter", encounter.EncounterId, "Admitted");
             await db.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);
-            var view = await GetAsync(facilityId, departmentId, encounter.EncounterId, ct);
-            return AdmissionOperation<AdmissionView>.Ok(view!);
+            // Return the transaction's persisted entities directly. Subsequent GET is
+            // tested independently, so read-model faults cannot masquerade as write failure.
+            return AdmissionOperation<AdmissionView>.Ok(new AdmissionView(
+                encounter.EncounterId, patient.PatientId, facilityId, departmentId,
+                input.BedId, patient.FirstName, patient.LastName, patient.NationalId,
+                patient.UnknownIdentityCode, patient.IsUnknown, patient.BirthDate,
+                patient.Sex, encounter.AdmissionType, encounter.Status, encounter.AdmittedAt,
+                Convert.ToBase64String(patient.RowVersion), null));
         }
         catch (DbUpdateException)
         {

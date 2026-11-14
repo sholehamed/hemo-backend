@@ -132,6 +132,23 @@ public static class OrganizationEndpoints
                     allowed.Add(new OrgItem(dept.DepartmentId, dept.Code, dept.Name, facilityId));
             return Results.Ok(allowed);
         });
+        scope.MapGet("/facilities/{facilityId:long}/departments/{departmentId:long}/beds",
+            async (long facilityId, long departmentId, HttpContext http,
+                HemoDbContext db, ResourceAccessService access, CancellationToken ct) =>
+            {
+                if (!await access.CanAsync(CurrentId(http), "patient.read",
+                    facilityId, departmentId, ct))
+                    return Results.Forbid();
+                var beds = await db.Beds.AsNoTracking()
+                    .Where(x => x.DepartmentId == departmentId && x.Status == "Active"
+                        && !db.EncounterLocations.Any(loc => loc.BedId == x.BedId
+                            && loc.ToAt == null))
+                    .OrderBy(x => x.BedCode)
+                    .Select(x => new OrgItem(x.BedId, x.BedCode, "Active", departmentId))
+                    .ToListAsync(ct);
+                return Results.Ok(beds);
+            });
+
         scope.MapGet("/facilities/{facilityId:long}/access-check", async (
             long facilityId, long? departmentId, HttpContext http, ResourceAccessService access,
             CancellationToken ct) =>

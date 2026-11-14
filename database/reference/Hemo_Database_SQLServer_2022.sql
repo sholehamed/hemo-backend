@@ -9,6 +9,10 @@ IF DB_ID(N'Hemo') IS NULL EXEC(N'CREATE DATABASE [Hemo]');
 GO
 USE [Hemo];
 GO
+-- Safety: baseline must never be replayed over an existing schema.
+IF EXISTS (SELECT 1 FROM sys.tables WHERE is_ms_shipped = 0)
+    THROW 51001, 'Hemo baseline requires an empty database; use versioned migrations for upgrades.', 1;
+GO
 
 IF SCHEMA_ID(N'org') IS NULL EXEC(N'CREATE SCHEMA [org]');
 GO
@@ -3061,6 +3065,9 @@ INNER JOIN [sec].[Role] r ON r.[Code]=x.[RoleCode]
 INNER JOIN [sec].[Permission] p ON p.[Code]=x.[PermissionCode];
 INSERT INTO [sec].[RolePermission] ([RoleId],[PermissionId])
 SELECT r.[RoleId],p.[PermissionId] FROM [sec].[Role] r CROSS JOIN [sec].[Permission] p WHERE r.[Code]='SYSTEM_ADMIN';
+-- Fresh-only schema version marker; upgrades must use reviewed migrations.
+INSERT INTO [cfg].[Setting] ([FacilityId],[SettingKey],[SettingValue],[ValueType])
+VALUES (NULL, 'schema.version', N'1.0.0', 'String');
 GO
 -- Post-install object verification (expected: 88 tables, 203 trusted FKs, 259 nonclustered indexes)
 SELECT

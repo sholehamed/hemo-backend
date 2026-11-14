@@ -83,6 +83,20 @@ public sealed class SqlServerIdentityRoundTripTests
             Assert.Equal(259, reader.GetInt32(2));
         }
 
+        await using (var seedContract = connection.CreateCommand())
+        {
+            seedContract.CommandText = """
+                SELECT (SELECT COUNT(*) FROM sec.Role),
+                       (SELECT COUNT(*) FROM cfg.Setting
+                        WHERE SettingKey='schema.version' AND SettingValue=N'1.0.0'
+                          AND FacilityId IS NULL);
+                """;
+            await using var result = await seedContract.ExecuteReaderAsync();
+            Assert.True(await result.ReadAsync());
+            Assert.Equal(8, result.GetInt32(0));
+            Assert.Equal(1, result.GetInt32(1));
+        }
+
         var hemo = new SqlConnectionStringBuilder(connString) { InitialCatalog = "Hemo" };
         var options = new DbContextOptionsBuilder<HemoDbContext>()
             .UseSqlServer(hemo.ConnectionString).Options;

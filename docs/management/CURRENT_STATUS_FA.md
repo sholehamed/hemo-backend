@@ -7,8 +7,8 @@
 | ST-00 — بررسی پروتوتایپ | مستند شده | 62 فایل HTML، تحلیل [مرجع](../reference/HEMO_WORKFLOWS_AND_DATA_MODEL_FA.md) | تحلیل بر اساس سورس، نه مرورگر/E2E |
 | ST-01 — زیرساخت مستقل | **Merged** | Backend [PR #1](https://github.com/sholehamed/hemo-backend/pull/1)، Frontend [PR #1](https://github.com/sholehamed/hemo-frontend/pull/1) | .NET 10 چهارلایه، Angular 22، health/status، CI |
 | ST-02A — BFF و هویت پایه | **Merged** | Backend [PR #2](https://github.com/sholehamed/hemo-backend/pull/2)، Frontend [PR #2](https://github.com/sholehamed/hemo-frontend/pull/2) | Cookie، CSRF، login/logout/session، sec.*، منوی مبتنی بر role |
-| ST-02B — یکپارچه‌سازی schema و seed | **Not started** | [دستور کار](NEXT_ITERATION_FA.md) | تثبیت مدل DB و راه‌اندازی تکرارپذیر؛ بدون حذف داده |
-| ST-03 — ایمن‌سازی و scope سازمانی | **Not started** | [Roadmap](ROADMAP_FA.md) | دسترسی مرکز/بخش، audit، مدیریت حساب‌ها، session revocation |
+| ST-02B — یکپارچه‌سازی schema و seed | **Implemented; CI green (review pending)** | [دستور کار](NEXT_ITERATION_FA.md) | تثبیت مدل DB و راه‌اندازی تکرارپذیر؛ بدون حذف داده |
+| ST-03 — ایمن‌سازی و scope سازمانی | **Next** | [Roadmap](ROADMAP_FA.md) | دسترسی مرکز/بخش، audit، مدیریت حساب‌ها، session revocation |
 | ST-04 ... ST-13 | **Not started** | [Roadmap](ROADMAP_FA.md) | Vertical slices و آمادگی استقرار |
 
 ## نتیجه تست ثبت‌شده قبل از این سند

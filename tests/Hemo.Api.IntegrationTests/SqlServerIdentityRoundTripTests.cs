@@ -250,6 +250,140 @@ public sealed class SqlServerIdentityRoundTripTests
         using var cannotManage = await scopedClient.GetAsync("/api/v1/admin/users/");
         Assert.Equal(HttpStatusCode.Forbidden, cannotManage.StatusCode);
 
+        // ST-04 full SQL-backed admission vertical slice, including scope checks and audit.
+        using var scopedCsrfAfterLogin = await scopedClient.GetAsync("/api/v1/auth/csrf");
+        var scopedFreshToken = Uri.UnescapeDataString(
+            scopedCsrfAfterLogin.Headers.GetValues("Set-Cookie")
+                .First(x => x.StartsWith("XSRF-TOKEN=", StringComparison.Ordinal))
+                .Split(';')[0].Substring("XSRF-TOKEN=".Length));
+
+        async Task<HttpResponseMessage> PostScopedAsync(string uri, object body)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, uri)
+            { Content = JsonContent.Create(body) };
+            request.Headers.TryAddWithoutValidation("X-XSRF-TOKEN", scopedFreshToken);
+            return await scopedClient.SendAsync(request);
+        }
+        async Task<HttpResponseMessage> PutScopedAsync(string uri, object body)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Put, uri)
+            { Content = JsonContent.Create(body) };
+            request.Headers.TryAddWithoutValidation("X-XSRF-TOKEN", scopedFreshToken);
+            return await scopedClient.SendAsync(request);
+        }
+
+        var baseAdmission = $"/api/v1/facilities/{facilityA}/departments/{deptA1}/admissions";
+        var patientDraft = new
+        {
+            nationalId = "0012345678", isUnknown = false,
+            firstName = "آرمان", lastName = "آزمایشی",
+            fatherName = "کریم", birthDate = new DateOnly(1996, 6, 10),
+            sex = "M", mobile = (string?)null,
+            admissionType = "Routine", bedId = (long?)null,
+            admissionNote = (string?)null
+        };
+        using var admitted = await PostScopedAsync(baseAdmission + "/", patientDraft);
+        Assert.Equal(HttpStatusCode.Created, admitted.StatusCode);
+        var admission = await admitted.Content.ReadFromJsonAsync<JsonElement>();
+        var encounterId = admission.GetProperty("encounterId").GetInt64();
+        var originalRowVersion = admission.GetProperty("patientRowVersion").GetString();
+        Assert.False(string.IsNullOrWhiteSpace(originalRowVersion));
+
+        using var persisted = await scopedClient.GetAsync($"{baseAdmission}/{encounterId}");
+        Assert.Equal(HttpStatusCode.OK, persisted.StatusCode);
+        var persistedAdmission = await persisted.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("آرمان", persistedAdmission.GetProperty("firstName").GetString());
+
+        using var list = await scopedClient.GetAsync(baseAdmission + "/?page=1&search=آرمان");
+        Assert.Equal(HttpStatusCode.OK, list.StatusCode);
+        var found = await list.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(found.GetProperty("total").GetInt32() >= 1);
+
+        using var blockedList = await scopedClient.GetAsync(
+            $"/api/v1/facilities/{facilityA}/departments/{deptA2}/admissions/");
+        Assert.Equal(HttpStatusCode.Forbidden, blockedList.StatusCode);
+        using var blockedHospital = await scopedClient.GetAsync(
+            $"/api/v1/facilities/{facilityB}/departments/{deptB1}/admissions/{encounterId}");
+        Assert.Equal(HttpStatusCode.Forbidden, blockedHospital.StatusCode);
+
+        using var issued = await PostScopedAsync($"{baseAdmission}/{encounterId}/wristbands", new { });
+        Assert.Equal(HttpStatusCode.OK, issued.StatusCode);
+        var band = await issued.Content.ReadFromJsonAsync<JsonElement>();
+        var barcode = band.GetProperty("barcode").GetString();
+        Assert.False(string.IsNullOrWhiteSpace(barcode));
+        using var issueAgain = await PostScopedAsync(
+            $"{baseAdmission}/{encounterId}/wristbands", new { });
+        Assert.Equal(HttpStatusCode.OK, issueAgain.StatusCode);
+        var secondBand = await issueAgain.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(barcode, secondBand.GetProperty("barcode").GetString());
+
+        using var mismatch = await PostScopedAsync(
+            $"{baseAdmission}/{encounterId}/identity-verifications",
+            new { barcode, firstIdentifier = "0000000000",
+                secondIdentifier = "آرمان آزمایشی", checklistConfirmed = true,
+                mismatchReason = "Incorrect identifier" });
+        Assert.Equal(HttpStatusCode.OK, mismatch.StatusCode);
+        var mismatchValue = await mismatch.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Mismatch", mismatchValue.GetProperty("status").GetString());
+
+        using var verified = await PostScopedAsync(
+            $"{baseAdmission}/{encounterId}/identity-verifications",
+            new { barcode, firstIdentifier = "0012345678",
+                secondIdentifier = "آرمان آزمایشی", checklistConfirmed = true,
+                mismatchReason = (string?)null });
+        Assert.Equal(HttpStatusCode.OK, verified.StatusCode);
+        var verifiedValue = await verified.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Verified", verifiedValue.GetProperty("status").GetString());
+
+        var updateDraft = new
+        {
+            firstName = "آرمان", lastName = "ویرایش‌شده",
+            fatherName = "کریم", birthDate = new DateOnly(1996, 6, 10),
+            sex = "M", mobile = (string?)null,
+            rowVersion = originalRowVersion
+        };
+        using var updated = await PutScopedAsync(
+            $"{baseAdmission}/{encounterId}/patient", updateDraft);
+        Assert.Equal(HttpStatusCode.OK, updated.StatusCode);
+        using var staleUpdate = await PutScopedAsync(
+            $"{baseAdmission}/{encounterId}/patient", updateDraft);
+        Assert.Equal(HttpStatusCode.Conflict, staleUpdate.StatusCode);
+
+        using var duplicateIdentifier = await PostScopedAsync(baseAdmission + "/", patientDraft);
+        Assert.Equal(HttpStatusCode.Conflict, duplicateIdentifier.StatusCode);
+
+        var bedId = await CreateOrgAsync("/api/v1/admin/organization/beds",
+            new { departmentId = deptA1, bedCode = "B-001" });
+        using var assignedBed = await PostScopedAsync(baseAdmission + "/", new
+        {
+            nationalId = "0012345679", isUnknown = false,
+            firstName = "سارا", lastName = "آزمایشی",
+            fatherName = (string?)null, birthDate = (DateOnly?)null,
+            sex = "F", mobile = (string?)null, admissionType = "Routine",
+            bedId = (long?)bedId, admissionNote = (string?)null
+        });
+        Assert.Equal(HttpStatusCode.Created, assignedBed.StatusCode);
+
+        using var occupiedBed = await PostScopedAsync(baseAdmission + "/", new
+        {
+            nationalId = "0012345670", isUnknown = false,
+            firstName = "حسام", lastName = "آزمایشی",
+            fatherName = (string?)null, birthDate = (DateOnly?)null,
+            sex = "M", mobile = (string?)null, admissionType = "Routine",
+            bedId = (long?)bedId, admissionNote = (string?)null
+        });
+        Assert.Equal(HttpStatusCode.Conflict, occupiedBed.StatusCode);
+
+        await using (var patientDb = new HemoDbContext(options))
+        {
+            Assert.Equal(2, await patientDb.Encounters.CountAsync(x => x.FacilityId == facilityA));
+            Assert.Equal(2, await patientDb.IdentityVerifications.CountAsync(
+                x => x.EncounterId == encounterId));
+            Assert.Equal(1, await patientDb.Wristbands.CountAsync(x => x.EncounterId == encounterId));
+            Assert.True(await patientDb.AuditEvents.AnyAsync(x =>
+                x.EntityType == "Encounter" && x.ActionType == "Admitted"));
+        }
+
         using var disabled = await PostAdminAsync(
             $"/api/v1/admin/users/{scopedUserId}/deactivate", new { });
         Assert.Equal(HttpStatusCode.NoContent, disabled.StatusCode);

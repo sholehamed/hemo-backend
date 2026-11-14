@@ -1,3 +1,4 @@
+using Hemo.Application.Users;
 using Hemo.Application.Organization;
 using Hemo.Application.Cqrs;
 using Hemo.Application.Patients;
@@ -22,6 +23,11 @@ public static class DependencyInjection
         services.AddScoped<IRequestHandler<CreateFacilityCommand, Outcome<OrgItem>>, CreateFacilityHandler>();
         services.AddScoped<IRequestHandler<CreateDepartmentCommand, Outcome<OrgItem>>, CreateDepartmentHandler>();
         services.AddScoped<IRequestHandler<CreateBedCommand, Outcome<OrgItem>>, CreateBedHandler>();
+        services.AddScoped<IRequestHandler<ListManagedUsersQuery, Outcome<IReadOnlyList<ManagedUser>>>, ListManagedUsersHandler>();
+        services.AddScoped<IRequestHandler<ListManagedRolesQuery, IReadOnlyList<ManagedRole>>, ListManagedRolesHandler>();
+        services.AddScoped<IRequestHandler<CreateManagedUserCommand, Outcome<ManagedUser>>, CreateManagedUserHandler>();
+        services.AddScoped<IRequestHandler<GrantManagedRoleCommand, Outcome<GrantReceipt>>, GrantManagedRoleHandler>();
+        services.AddScoped<IRequestHandler<DeactivateManagedUserCommand, Outcome<bool>>, DeactivateManagedUserHandler>();
         return services;
     }
 }

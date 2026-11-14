@@ -15,7 +15,7 @@
 ## نتیجه تست ثبت‌شده قبل از این سند
 - Backend main: Release build و **10 تست معمول** موفق؛ شاخه PR #2 نیز **تست یکپارچه SQL Server 2022 (1/1)** را با اجرای Baseline کامل و Bootstrap/Login/Permission/Logout گذرانده است؛ [Workflow SQL](https://github.com/sholehamed/hemo-backend/actions/workflows/sql-server-integration.yml).
 - Frontend main: Production build و **7 تست smoke** موفق؛ [Frontend CI](https://github.com/sholehamed/hemo-frontend/actions/workflows/frontend-ci.yml).
-- تست مرورگر با Backend و SQL در یک محیط واقعی، تست امن‌سازی داده بین دو مرکز، و بارگذاری/کارایی **هنوز انجام نشده**.
+- **ST-04 Browser E2E واقعی با Chromium و Backend/SQL ۱/۱ سبز شد**؛ تست scope بین دو مرکز در SQL Integration سبز است. آزمون بارگذاری/کارایی و PenTest کامل **هنوز انجام نشده**.
 - اجرای SQL Server در Workflow به معنی صحت همه قوانین بالینی یا نهایی‌بودن کل 88 جدول نیست.
 
 ## کار بعدی بدون تداخل

@@ -1,7 +1,7 @@
 # Hemo | دفتر ثبت پیشرفت و تحویل بین جلسات
 
 ## وضعیت فعلی (2026-11-14)
-**آخرین مرحله Merge شده:** ST-03. ST-02B PR #4 و ST-03 PR #5 در دو ریپو Merge شده‌اند. **ST-04 PR #6 در هر دو ریپو Merge شد:** SQL Integration 1/1، Backend 23/23، Frontend Production Build/Smoke و Chromium Playwright 1/1 سبز؛ SOP بالینی و امنیت انتشار هنوز باز.  
+**آخرین مرحله Merge شده:** ST-04. ST-02B PR #4 و ST-03 PR #5 در دو ریپو Merge شده‌اند. **ST-04 PR #6 در هر دو ریپو Merge شد:** SQL Integration 1/1، Backend 23/23، Frontend Production Build/Smoke و Chromium Playwright 1/1 سبز؛ SOP بالینی و امنیت انتشار هنوز باز.  
 **ریپو اصلی برنامه:** `hemo-backend/docs/README.md`.  
 **گفتگو/جلسه تازه باید از:** [CURRENT_STATUS_FA](CURRENT_STATUS_FA.md) و [NEXT_ITERATION_FA](NEXT_ITERATION_FA.md) و [ROADMAP_FA](ROADMAP_FA.md) شروع شود.
 

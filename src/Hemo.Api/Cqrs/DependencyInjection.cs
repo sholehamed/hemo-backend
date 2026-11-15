@@ -55,6 +55,7 @@ public static class DependencyInjection
         services.AddScoped<IRequestHandler<ReceiveIssueCommand,Outcome<IssueView>>,ReceiveIssueHandler>();
         services.AddScoped<IRequestHandler<ReturnIssueCommand,Outcome<ReturnView>>,ReturnIssueHandler>();
         services.AddScoped<IRequestHandler<ReviewReturnCommand,Outcome<ReturnView>>,ReviewReturnHandler>();
+        services.AddScoped<IRequestHandler<ListReturnsQuery,Outcome<IReadOnlyList<ReturnView>>>,ListReturnsHandler>();
         return services;
     }
 }

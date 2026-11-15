@@ -11,7 +11,7 @@ public sealed record ReturnIssueRequest(long ReturnedByUserId,string ReasonCode,
     decimal? TemperatureC,string? Notes);
 public sealed record ReviewReturnRequest(string Decision,string RowVersion,string? Note);
 public sealed record IssueView(long Id,long UnitId,string UnitCode,long RequestId,
-    long DepartmentId,string Status,DateTime IssuedAt,string RowVersion);
+    long DepartmentId,string Status,DateTime IssuedAt,string RowVersion,long? ReceivedByUserId);
 public sealed record DispatchView(long Id,long IssueId,string Status,string DispatchNo);
 public sealed record ReturnView(long Id,long IssueId,string Status,string? Decision,string RowVersion);
 public sealed record ListReturnsQuery(long Actor,long FacilityId)

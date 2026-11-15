@@ -113,7 +113,11 @@ public sealed class SqlServerIdentityRoundTripTests
                     ["HEMO_BOOTSTRAP_PASSWORD"] = "Hemo-Integration-Ci_2026!"
                 }).Build();
 
-            await AdminBootstrap.RunAsync(db, new PasswordHasher<AccountUser>(), config);
+            await AdminBootstrap.RunAsync(
+                new Hemo.Application.Authentication.BootstrapSystemAdministratorHandler(
+                    new Hemo.Infrastructure.Security.AuthenticationSqlStore(
+                        db, new PasswordHasher<AccountUser>(),
+                        new Hemo.Infrastructure.Security.HemoAccessService(db))), config);
             Assert.Equal(1, await db.UserRoles
                 .Where(g => g.IsActive)
                 .Join(db.Roles, g => g.RoleId, r => r.RoleId,

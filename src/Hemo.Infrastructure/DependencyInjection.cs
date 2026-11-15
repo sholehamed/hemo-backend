@@ -1,3 +1,5 @@
+using Hemo.Application.Hemovigilance;
+using Hemo.Infrastructure.Hemovigilance;
 using Hemo.Application.Blood;
 using Hemo.Infrastructure.Blood;
 using Hemo.Application.Clinical;
@@ -32,6 +34,7 @@ public static class DependencyInjection
         services.AddScoped<IInventoryStore,InventorySqlStore>();
         services.AddScoped<ILogisticsStore,LogisticsSqlStore>();
         services.AddScoped<ITransfusionStore,TransfusionSqlStore>();
+        services.AddScoped<IReactionStore,ReactionSqlStore>();
         services.AddScoped<IAuthenticationStore, AuthenticationSqlStore>();
         services.AddScoped<IAdmissionStore, AdmissionService>();
         services.AddScoped<IUserAdministrationStore, UserAdministrationSqlStore>();

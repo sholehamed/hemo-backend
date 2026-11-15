@@ -1,3 +1,4 @@
+using Hemo.Api.Hemovigilance;
 using Hemo.Api.Blood;
 using Hemo.Api.Clinical;
 using Hemo.Application.Authentication;
@@ -96,6 +97,7 @@ app.MapBloodRequestEndpoints();
 app.MapInventoryEndpoints();
 app.MapLogisticsEndpoints();
 app.MapTransfusionEndpoints();
+app.MapReactionEndpoints();
 
 app.Run();
 

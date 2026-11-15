@@ -1,3 +1,4 @@
+using Hemo.Application.Authentication;
 using Hemo.Application.Users;
 using Hemo.Infrastructure.Security;
 using Hemo.Application.Organization;
@@ -23,6 +24,7 @@ public static class DependencyInjection
             throw new InvalidOperationException(
                 "ConnectionStrings:Hemo must be provided through configuration or secrets.");
 
+        services.AddScoped<IAuthenticationStore, AuthenticationSqlStore>();
         services.AddScoped<IAdmissionStore, AdmissionService>();
         services.AddScoped<IUserAdministrationStore, UserAdministrationSqlStore>();
         services.AddScoped<IOrganizationStore, OrganizationSqlStore>();

@@ -1,3 +1,5 @@
+using Hemo.Application.Authentication;
+using Hemo.Application.Cqrs;
 using Hemo.Domain.Organization;
 using Hemo.Domain.Patients;
 using Hemo.Domain.Security;
@@ -58,21 +60,16 @@ public static class SessionSecurity
                         return;
                     }
 
-                    var db = ctx.HttpContext.RequestServices.GetRequiredService<HemoDbContext>();
                     var sessionText = ctx.Principal?.FindFirst("hemo.session")?.Value;
                     if (!long.TryParse(sessionText, out var sessionId))
                     {
                         ctx.RejectPrincipal();
                         return;
                     }
-
-                    var isActive = await db.AccountUsers.AsNoTracking()
-                        .AnyAsync(u => u.AccountUserId == userId && u.IsActive);
-                    var validSession = await db.UserSessions.AsNoTracking()
-                        .AnyAsync(x => x.UserSessionId == sessionId
-                            && x.AccountUserId == userId
-                            && x.RevokedAt == null && x.ExpiresAt > DateTime.UtcNow);
-                    if (!isActive || !validSession)
+                    var handler = ctx.HttpContext.RequestServices.GetRequiredService<
+                        IRequestHandler<ValidateSessionQuery, bool>>();
+                    if (!await handler.Handle(new ValidateSessionQuery(userId, sessionId),
+                        ctx.HttpContext.RequestAborted))
                         ctx.RejectPrincipal();
                 };
             });
@@ -112,7 +109,8 @@ public static class SessionSecurity
 
 public sealed record GlobalPermissionRequirement(string Code) : IAuthorizationRequirement;
 
-public sealed class GlobalPermissionHandler(HemoAccessService access)
+public sealed class GlobalPermissionHandler(
+    IRequestHandler<HasGlobalPermissionQuery, bool> handler)
     : AuthorizationHandler<GlobalPermissionRequirement>
 {
     protected override async Task HandleRequirementAsync(
@@ -120,7 +118,8 @@ public sealed class GlobalPermissionHandler(HemoAccessService access)
     {
         if (long.TryParse(context.User.FindFirstValue(ClaimTypes.NameIdentifier),
                 out var userId) &&
-            await access.HasGlobalPermissionAsync(userId, requirement.Code))
+            await handler.Handle(new HasGlobalPermissionQuery(userId, requirement.Code),
+                CancellationToken.None))
             context.Succeed(requirement);
     }
 }

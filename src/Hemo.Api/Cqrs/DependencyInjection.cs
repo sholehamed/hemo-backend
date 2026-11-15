@@ -1,3 +1,4 @@
+using Hemo.Application.Authentication;
 using Hemo.Application.Users;
 using Hemo.Application.Organization;
 using Hemo.Application.Cqrs;
@@ -28,6 +29,12 @@ public static class DependencyInjection
         services.AddScoped<IRequestHandler<CreateManagedUserCommand, Outcome<ManagedUser>>, CreateManagedUserHandler>();
         services.AddScoped<IRequestHandler<GrantManagedRoleCommand, Outcome<GrantReceipt>>, GrantManagedRoleHandler>();
         services.AddScoped<IRequestHandler<DeactivateManagedUserCommand, Outcome<bool>>, DeactivateManagedUserHandler>();
+        services.AddScoped<IRequestHandler<AuthenticateCommand, Outcome<SignInTicket>>, AuthenticateHandler>();
+        services.AddScoped<IRequestHandler<GetSessionQuery, Outcome<SessionView>>, GetSessionHandler>();
+        services.AddScoped<IRequestHandler<ValidateSessionQuery, bool>, ValidateSessionHandler>();
+        services.AddScoped<IRequestHandler<RevokeSessionCommand, Outcome<bool>>, RevokeSessionHandler>();
+        services.AddScoped<IRequestHandler<HasGlobalPermissionQuery, bool>, HasGlobalPermissionHandler>();
+        services.AddScoped<IRequestHandler<BootstrapSystemAdministratorCommand, Outcome<bool>>, BootstrapSystemAdministratorHandler>();
         return services;
     }
 }

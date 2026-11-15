@@ -1,3 +1,5 @@
+using Hemo.Application.Authentication;
+using Hemo.Application.Cqrs;
 using Hemo.Api.Cqrs;
 using Hemo.Domain.Organization;
 using Hemo.Domain.Patients;
@@ -40,8 +42,8 @@ if (args.Contains("--bootstrap-system-admin", StringComparer.Ordinal))
 {
     using var scope = app.Services.CreateScope();
     await AdminBootstrap.RunAsync(
-        scope.ServiceProvider.GetRequiredService<HemoDbContext>(),
-        scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.Identity.IPasswordHasher<AccountUser>>(),
+        scope.ServiceProvider.GetRequiredService<
+            IRequestHandler<BootstrapSystemAdministratorCommand, Outcome<bool>>>(),
         app.Configuration);
     Console.WriteLine("Initial system administrator provisioned.");
     return;

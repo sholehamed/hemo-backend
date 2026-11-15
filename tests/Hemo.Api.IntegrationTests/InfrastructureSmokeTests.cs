@@ -1,3 +1,6 @@
+using Hemo.Domain.Organization;
+using Hemo.Domain.Patients;
+using Hemo.Domain.Security;
 using System.Net;
 using Xunit;
 using System.Net.Http.Json;

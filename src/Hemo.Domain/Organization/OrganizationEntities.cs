@@ -1,4 +1,4 @@
-namespace Hemo.Infrastructure.Organization;
+namespace Hemo.Domain.Organization;
 
 public sealed class Facility
 {

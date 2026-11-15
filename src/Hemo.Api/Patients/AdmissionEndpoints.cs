@@ -1,113 +1,112 @@
 using System.Security.Claims;
+using Hemo.Application.Cqrs;
 using Hemo.Application.Patients;
-using Hemo.Infrastructure.Patients;
-using Hemo.Infrastructure.Security;
-using Microsoft.AspNetCore.Antiforgery;
 using Hemo.Api.Security;
+using Microsoft.AspNetCore.Antiforgery;
 
 namespace Hemo.Api.Patients;
 
-/// <summary>Facility+department routes are checked against actual persisted resources.</summary>
+/// <summary>
+/// Thin Minimal API adapter. Commands and queries own authorization/orchestration;
+/// handlers invoke persistence through application ports. HTTP owns CSRF and status mapping.
+/// Existing URLs and response DTOs stay backward compatible with ST-04.
+/// </summary>
 public static class AdmissionEndpoints
 {
     public static void MapAdmissionEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup(
+        var routes = app.MapGroup(
             "/api/v1/facilities/{facilityId:long}/departments/{departmentId:long}/admissions")
             .RequireAuthorization().WithTags("Admissions");
 
-        group.MapGet("/", async (long facilityId, long departmentId,
-            string? search, int? page, HttpContext http, ResourceAccessService access,
-            AdmissionService service, CancellationToken ct) =>
+        routes.MapGet("/", async (long facilityId, long departmentId, string? search,
+            int? page, HttpContext http,
+            IRequestHandler<ListAdmissionsQuery, AdmissionOperation<AdmissionPage>> handler,
+            CancellationToken ct) =>
         {
-            if (!await access.CanAsync(CurrentId(http), "patient.read", facilityId, departmentId, ct))
-                return Results.Forbid();
-            return Results.Ok(await service.ListAsync(
-                facilityId, departmentId, search, page ?? 1, ct));
+            var result = await handler.Handle(new ListAdmissionsQuery(
+                Actor(http), facilityId, departmentId, search, page ?? 1), ct);
+            return result.IsSuccess ? Results.Ok(result.Value) : Error(result.Error!);
         });
 
-        group.MapGet("/{encounterId:long}", async (long facilityId, long departmentId,
-            long encounterId, HttpContext http, ResourceAccessService access,
-            AdmissionService service, CancellationToken ct) =>
+        routes.MapGet("/{encounterId:long}", async (long facilityId, long departmentId,
+            long encounterId, HttpContext http,
+            IRequestHandler<GetAdmissionQuery, AdmissionOperation<AdmissionView>> handler,
+            CancellationToken ct) =>
         {
-            if (!await access.CanAsync(CurrentId(http), "patient.read", facilityId, departmentId, ct))
-                return Results.Forbid();
-            var view = await service.GetAsync(facilityId, departmentId, encounterId, ct);
-            return view is null ? Results.NotFound() : Results.Ok(view);
+            var result = await handler.Handle(new GetAdmissionQuery(
+                Actor(http), facilityId, departmentId, encounterId), ct);
+            return result.IsSuccess ? Results.Ok(result.Value) : Error(result.Error!);
         });
 
-        group.MapPost("/", async (long facilityId, long departmentId,
+        routes.MapPost("/", async (long facilityId, long departmentId,
             CreateAdmissionRequest input, HttpContext http, IAntiforgery anti,
-            ResourceAccessService access, AdmissionService service, CancellationToken ct) =>
+            IRequestHandler<CreateAdmissionCommand, AdmissionOperation<AdmissionView>> handler,
+            CancellationToken ct) =>
         {
             if (!await MutationCsrf.ValidAsync(http, anti))
                 return Results.BadRequest(new { code = "invalid_csrf" });
-            if (!await access.CanAsync(CurrentId(http), "patient.create", facilityId, departmentId, ct))
-                return Results.Forbid();
-
-            var result = await service.CreateAsync(
-                facilityId, departmentId, CurrentId(http), input, ct);
-            return !result.IsSuccess ? Error(result.Error!) :
-                Results.Created(
+            var result = await handler.Handle(new CreateAdmissionCommand(
+                Actor(http), facilityId, departmentId, input), ct);
+            return result.IsSuccess
+                ? Results.Created(
                     $"/api/v1/facilities/{facilityId}/departments/{departmentId}/admissions/{result.Value!.EncounterId}",
-                    result.Value);
+                    result.Value)
+                : Error(result.Error!);
         });
 
-        group.MapPut("/{encounterId:long}/patient", async (
-            long facilityId, long departmentId, long encounterId,
-            UpdatePatientRequest input, HttpContext http, IAntiforgery anti,
-            ResourceAccessService access, AdmissionService service, CancellationToken ct) =>
+        routes.MapPut("/{encounterId:long}/patient", async (
+            long facilityId, long departmentId, long encounterId, UpdatePatientRequest input,
+            HttpContext http, IAntiforgery anti,
+            IRequestHandler<UpdatePatientCommand, AdmissionOperation<AdmissionView>> handler,
+            CancellationToken ct) =>
         {
             if (!await MutationCsrf.ValidAsync(http, anti))
                 return Results.BadRequest(new { code = "invalid_csrf" });
-            if (!await access.CanAsync(CurrentId(http), "patient.update", facilityId, departmentId, ct))
-                return Results.Forbid();
-            var result = await service.UpdatePatientAsync(facilityId, departmentId,
-                encounterId, CurrentId(http), input, ct);
+            var result = await handler.Handle(new UpdatePatientCommand(
+                Actor(http), facilityId, departmentId, encounterId, input), ct);
             return result.IsSuccess ? Results.Ok(result.Value) : Error(result.Error!);
         });
 
-        group.MapPost("/{encounterId:long}/wristbands", async (
-            long facilityId, long departmentId, long encounterId,
-            HttpContext http, IAntiforgery anti, ResourceAccessService access,
-            AdmissionService service, CancellationToken ct) =>
+        routes.MapPost("/{encounterId:long}/wristbands", async (
+            long facilityId, long departmentId, long encounterId, HttpContext http,
+            IAntiforgery anti,
+            IRequestHandler<IssueWristbandCommand, AdmissionOperation<WristbandView>> handler,
+            CancellationToken ct) =>
         {
             if (!await MutationCsrf.ValidAsync(http, anti))
                 return Results.BadRequest(new { code = "invalid_csrf" });
-            if (!await access.CanAsync(CurrentId(http), "patient.update", facilityId, departmentId, ct))
-                return Results.Forbid();
-            var result = await service.IssueWristbandAsync(
-                facilityId, departmentId, encounterId, CurrentId(http), ct);
+            var result = await handler.Handle(new IssueWristbandCommand(
+                Actor(http), facilityId, departmentId, encounterId), ct);
             return result.IsSuccess ? Results.Ok(result.Value) : Error(result.Error!);
         });
 
-        group.MapPost("/{encounterId:long}/identity-verifications", async (
+        routes.MapPost("/{encounterId:long}/identity-verifications", async (
             long facilityId, long departmentId, long encounterId,
             IdentityVerificationRequest input, HttpContext http, IAntiforgery anti,
-            ResourceAccessService access, AdmissionService service, CancellationToken ct) =>
+            IRequestHandler<VerifyIdentityCommand, AdmissionOperation<IdentityVerificationView>> handler,
+            CancellationToken ct) =>
         {
             if (!await MutationCsrf.ValidAsync(http, anti))
                 return Results.BadRequest(new { code = "invalid_csrf" });
-            if (!await access.CanAsync(CurrentId(http), "patient.identity.verify",
-                facilityId, departmentId, ct))
-                return Results.Forbid();
-            var result = await service.VerifyIdentityAsync(
-                facilityId, departmentId, encounterId, CurrentId(http), input, ct);
+            var result = await handler.Handle(new VerifyIdentityCommand(
+                Actor(http), facilityId, departmentId, encounterId, input), ct);
             return result.IsSuccess ? Results.Ok(result.Value) : Error(result.Error!);
         });
     }
 
-    private static long CurrentId(HttpContext http) =>
+    private static long Actor(HttpContext http) =>
         long.Parse(http.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
     private static IResult Error(string code) => code switch
     {
+        "forbidden" => Results.Forbid(),
         "not_found" => Results.NotFound(),
         "duplicate_identifier" or "bed_occupied" or "constraint_conflict" or
-            "concurrency_conflict" or "invalid_state" or "no_wristband" =>
+        "concurrency_conflict" or "invalid_state" or "no_wristband" =>
             Results.Conflict(new { code }),
         "invalid_input" or "invalid_department" or "invalid_bed" or
-            "invalid_rowversion" => Results.BadRequest(new { code }),
+        "invalid_rowversion" => Results.BadRequest(new { code }),
         _ => Results.Problem(statusCode: 500, title: "admission_error")
     };
 }

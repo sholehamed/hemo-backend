@@ -1,3 +1,6 @@
+using Hemo.Domain.Organization;
+using Hemo.Domain.Patients;
+using Hemo.Domain.Security;
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;

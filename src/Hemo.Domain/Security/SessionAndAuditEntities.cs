@@ -1,4 +1,4 @@
-namespace Hemo.Infrastructure.Security;
+namespace Hemo.Domain.Security;
 
 public sealed class HemoUserSession
 {

@@ -136,3 +136,14 @@ public sealed class CloseRcaHandler(IReactionStore store,IResourcePermission per
     }
 }
 
+
+public sealed class GetRcaHandler(IReactionStore store,IResourcePermission permission)
+    : IRequestHandler<GetRcaQuery,Outcome<RcaDetails>>
+{
+    public async Task<Outcome<RcaDetails>> Handle(GetRcaQuery query,CancellationToken ct)
+    {
+        if(!await permission.CanAsync(query.Actor,"rca.manage",query.Facility,null,ct))
+            return Outcome<RcaDetails>.Fail("forbidden");
+        return await store.GetRcaAsync(query.Facility,query.RcaId,ct);
+    }
+}

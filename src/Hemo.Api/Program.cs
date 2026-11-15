@@ -94,6 +94,7 @@ app.MapUserAdminEndpoints();
 app.MapAdmissionEndpoints();
 app.MapBloodRequestEndpoints();
 app.MapInventoryEndpoints();
+app.MapLogisticsEndpoints();
 
 app.Run();
 

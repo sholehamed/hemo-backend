@@ -1,3 +1,4 @@
+using Hemo.Application.Blood;
 using Hemo.Application.Clinical;
 using Hemo.Application.Authentication;
 using Hemo.Application.Users;
@@ -41,6 +42,12 @@ public static class DependencyInjection
         services.AddScoped<IRequestHandler<GetBloodRequestQuery, Outcome<BloodRequestView>>, GetBloodRequestHandler>();
         services.AddScoped<IRequestHandler<SubmitBloodRequestCommand, Outcome<BloodRequestView>>, SubmitBloodRequestHandler>();
         services.AddScoped<IRequestHandler<ReviewBloodRequestCommand, Outcome<BloodRequestView>>, ReviewBloodRequestHandler>();
+        services.AddScoped<IRequestHandler<ListStockQuery,Outcome<IReadOnlyList<InventoryUnitView>>>,ListStockHandler>();
+        services.AddScoped<IRequestHandler<ListBloodGroupsQuery,Outcome<IReadOnlyList<BloodGroupOption>>>,ListBloodGroupsHandler>();
+        services.AddScoped<IRequestHandler<ReceiveStockCommand,Outcome<InventoryUnitView>>,ReceiveStockHandler>();
+        services.AddScoped<IRequestHandler<ReserveStockCommand,Outcome<long>>,ReserveStockHandler>();
+        services.AddScoped<IRequestHandler<RecordCrossmatchCommand,Outcome<CrossmatchView>>,RecordCrossmatchHandler>();
+        services.AddScoped<IRequestHandler<FinalizeCrossmatchCommand,Outcome<CrossmatchView>>,FinalizeCrossmatchHandler>();
         return services;
     }
 }

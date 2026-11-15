@@ -1,3 +1,5 @@
+using Hemo.Application.Blood;
+using Hemo.Infrastructure.Blood;
 using Hemo.Application.Clinical;
 using Hemo.Infrastructure.Clinical;
 using Hemo.Application.Authentication;
@@ -27,6 +29,7 @@ public static class DependencyInjection
                 "ConnectionStrings:Hemo must be provided through configuration or secrets.");
 
         services.AddScoped<IBloodRequestStore, BloodRequestSqlStore>();
+        services.AddScoped<IInventoryStore,InventorySqlStore>();
         services.AddScoped<IAuthenticationStore, AuthenticationSqlStore>();
         services.AddScoped<IAdmissionStore, AdmissionService>();
         services.AddScoped<IUserAdministrationStore, UserAdministrationSqlStore>();

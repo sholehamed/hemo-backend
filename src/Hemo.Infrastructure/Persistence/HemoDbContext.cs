@@ -1,3 +1,5 @@
+using Hemo.Domain.Hemovigilance;
+using Hemo.Infrastructure.Hemovigilance;
 using Hemo.Domain.Blood;
 using Hemo.Infrastructure.Blood;
 using Hemo.Domain.Clinical;
@@ -30,6 +32,13 @@ public sealed class HemoDbContext(DbContextOptions<HemoDbContext> options) : DbC
     public DbSet<DispatchItem> DispatchItems => Set<DispatchItem>();
     public DbSet<UnitReturn> UnitReturns => Set<UnitReturn>();
     public DbSet<UnitWaste> UnitWastes => Set<UnitWaste>();
+    public DbSet<AdverseEvent> AdverseEvents => Set<AdverseEvent>();
+    public DbSet<EventSymptom> EventSymptoms => Set<EventSymptom>();
+    public DbSet<PhysicianEventAssessment> PhysicianEventAssessments => Set<PhysicianEventAssessment>();
+    public DbSet<EventInvestigation> EventInvestigations => Set<EventInvestigation>();
+    public DbSet<RcaCase> RcaCases => Set<RcaCase>();
+    public DbSet<RcaCause> RcaCauses => Set<RcaCause>();
+    public DbSet<CorrectiveAction> CorrectiveActions => Set<CorrectiveAction>();
     public DbSet<Transfusion> Transfusions => Set<Transfusion>();
     public DbSet<TransfusionChecklist> TransfusionChecklists => Set<TransfusionChecklist>();
     public DbSet<VitalObservation> VitalObservations => Set<VitalObservation>();
@@ -64,6 +73,7 @@ public sealed class HemoDbContext(DbContextOptions<HemoDbContext> options) : DbC
         modelBuilder.MapPatients();
         modelBuilder.MapClinicalRequests();
         modelBuilder.MapTransfusions();
+        modelBuilder.MapReactions();
         modelBuilder.MapBloodCatalog();
         modelBuilder.MapBloodInventory();
         modelBuilder.MapBloodLogistics();

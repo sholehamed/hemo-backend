@@ -127,7 +127,8 @@ public sealed class SqlServerIdentityRoundTripTests
 
         await using var factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
-                builder.UseSetting("ConnectionStrings:Hemo", hemo.ConnectionString));
+                builder.UseSetting("ConnectionStrings:Hemo", hemo.ConnectionString)
+                    .UseSetting("Security:LoginPermitLimit", "24"));
         using var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = true });
 
@@ -804,6 +805,140 @@ public sealed class SqlServerIdentityRoundTripTests
                 x.TransfusionId==transfusionId));
             Assert.True(await st08db.TransfusionActions.AnyAsync(x=>
                 x.TransfusionId==transfusionId && x.ActionType=="Complete"));
+        }
+
+        // ST-09: delayed reaction on a real completed/signed ST-08 transfusion.
+        // This test does not simulate stopping a physical bedside infusion.
+        var reactionRoot=$"/api/v1/facilities/{facilityA}/departments/{deptA1}/reactions";
+        using var outOfScopeReaction=await nurseHttp.GetAsync(
+            $"/api/v1/facilities/{facilityB}/departments/{deptB1}/reactions/");
+        Assert.Equal(HttpStatusCode.Forbidden,outOfScopeReaction.StatusCode);
+        using var reactionReported=await ClinicalPostAsync(nurseHttp,reactionRoot+"/",
+            nurse.Csrf,new {transfusionId,detectedAt=DateTime.UtcNow,
+                transfusionStopped=false,symptomsSummary="Synthetic urticaria after completion",
+                immediateActions="Escalated to assigned physician; documented assessment",
+                narrative="This event contains no real patient data",
+                symptomCodes=new[]{"RASH","FEVER"}});
+        Assert.Equal(HttpStatusCode.OK,reactionReported.StatusCode);
+        var reactionJson=await reactionReported.Content.ReadFromJsonAsync<JsonElement>();
+        var eventId=reactionJson.GetProperty("id").GetInt64();
+        Assert.Equal("Reported",reactionJson.GetProperty("status").GetString());
+        using var deniedAssessment=await ClinicalPostAsync(nurseHttp,
+            $"{reactionRoot}/{eventId}/assess",nurse.Csrf,new {
+                diagnosisText="Not authorized",severityGrade=(byte?)null,
+                causality=(string?)null,interventions=(string?)null,
+                recommendations=(string?)null,outcome=(string?)null,
+                nationalReportRequired=false,
+                rowVersion=reactionJson.GetProperty("rowVersion").GetString()});
+        Assert.Equal(HttpStatusCode.Forbidden,deniedAssessment.StatusCode);
+
+        using var doctorAssessed=await ClinicalPostAsync(doctorHttp,
+            $"{reactionRoot}/{eventId}/assess",doctor.Csrf,new {
+                diagnosisText="Clinician-entered synthetic assessment",
+                severityGrade=(byte?)1,causality=(string?)"Undetermined",
+                interventions=(string?)"Documented observation",
+                recommendations=(string?)"Case to be reviewed by HV",
+                outcome=(string?)"Stable",nationalReportRequired=false,
+                rowVersion=reactionJson.GetProperty("rowVersion").GetString()});
+        Assert.Equal(HttpStatusCode.OK,doctorAssessed.StatusCode);
+        var assessedJson=await doctorAssessed.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("DoctorReview",assessedJson.GetProperty("status").GetString());
+
+        var hv=await NewClinicianAsync("st09_hv",
+            "HvFirst-Ci_2026-Str0ng!","HV_MANAGER",true);
+        var hv2=await NewClinicianAsync("st09_hv2",
+            "HvSecond-Ci_2026-Str0ng!","HV_MANAGER",true);
+        using var hvHttp=hv.Http;
+        using var hv2Http=hv2.Http;
+        var hvRoot=$"/api/v1/facilities/{facilityA}/hemovigilance";
+
+        using var investigated=await ClinicalPostAsync(hvHttp,
+            $"{hvRoot}/reactions/{eventId}/investigations",hv.Csrf,new {
+                type="LabFollowUp",resultText="Synthetic report documented by HV",
+                rowVersion=assessedJson.GetProperty("rowVersion").GetString()});
+        Assert.Equal(HttpStatusCode.OK,investigated.StatusCode);
+        var investigatedJson=await investigated.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Investigation",investigatedJson.GetProperty("status").GetString());
+        using var staleInvestigation=await ClinicalPostAsync(hvHttp,
+            $"{hvRoot}/reactions/{eventId}/investigations",hv.Csrf,new {
+                type="LabFollowUp",resultText="Cannot reuse stale event version",
+                rowVersion=assessedJson.GetProperty("rowVersion").GetString()});
+        Assert.Equal(HttpStatusCode.Conflict,staleInvestigation.StatusCode);
+
+        using var confirmed=await ClinicalPostAsync(hv2Http,
+            $"{hvRoot}/reactions/{eventId}/review",hv2.Csrf,new {
+                decision="Confirmed",rowVersion=investigatedJson.GetProperty("rowVersion").GetString(),
+                reason="Synthetic HV committee finding"});
+        Assert.Equal(HttpStatusCode.OK,confirmed.StatusCode);
+        var confirmedJson=await confirmed.Content.ReadFromJsonAsync<JsonElement>();
+
+        using var openedRca=await ClinicalPostAsync(hvHttp,
+            $"{hvRoot}/reactions/{eventId}/rca",hv.Csrf,new{});
+        Assert.Equal(HttpStatusCode.OK,openedRca.StatusCode);
+        var rcaJson=await openedRca.Content.ReadFromJsonAsync<JsonElement>();
+        var rcaId=rcaJson.GetProperty("id").GetInt64();
+        using var duplicateRca=await ClinicalPostAsync(hvHttp,
+            $"{hvRoot}/reactions/{eventId}/rca",hv.Csrf,new{});
+        Assert.Equal(HttpStatusCode.Conflict,duplicateRca.StatusCode);
+
+        using var cause=await ClinicalPostAsync(hvHttp,
+            $"{hvRoot}/rca/{rcaId}/causes",hv.Csrf,new {
+                causeType="Process",
+                description="Synthetic RCA cause selected by reviewer",isRootCause=true});
+        Assert.Equal(HttpStatusCode.OK,cause.StatusCode);
+        using var assignedAction=await ClinicalPostAsync(hv2Http,
+            $"{hvRoot}/rca/{rcaId}/actions",hv2.Csrf,new {
+                title="Verify escalation procedure",
+                description="Review and document the incident SOP",
+                assignedToUserId=hv.UserId,dueAt=DateTime.UtcNow.AddDays(7)});
+        Assert.Equal(HttpStatusCode.OK,assignedAction.StatusCode);
+        var actionJson=await assignedAction.Content.ReadFromJsonAsync<JsonElement>();
+        var actionId=actionJson.GetProperty("id").GetInt64();
+        var actionVersion=actionJson.GetProperty("rowVersion").GetString();
+        using var completedAction=await ClinicalPostAsync(hvHttp,
+            $"{hvRoot}/actions/{actionId}/complete",hv.Csrf,new {
+                rowVersion=actionVersion,note=(string?)"Synthetic completion"});
+        Assert.Equal(HttpStatusCode.OK,completedAction.StatusCode);
+        var completedActionJson=await completedAction.Content.ReadFromJsonAsync<JsonElement>();
+        using var selfVerify=await ClinicalPostAsync(hvHttp,
+            $"{hvRoot}/actions/{actionId}/verify",hv.Csrf,new {
+                rowVersion=completedActionJson.GetProperty("rowVersion").GetString(),
+                note=(string?)null});
+        Assert.Equal(HttpStatusCode.Forbidden,selfVerify.StatusCode);
+        using var independentlyVerified=await ClinicalPostAsync(hv2Http,
+            $"{hvRoot}/actions/{actionId}/verify",hv2.Csrf,new {
+                rowVersion=completedActionJson.GetProperty("rowVersion").GetString(),
+                note=(string?)"Independent verification"});
+        Assert.Equal(HttpStatusCode.OK,independentlyVerified.StatusCode);
+
+        using var rcaDetails=await hv2Http.GetAsync($"{hvRoot}/rca/{rcaId}");
+        Assert.Equal(HttpStatusCode.OK,rcaDetails.StatusCode);
+        var detailJson=await rcaDetails.Content.ReadFromJsonAsync<JsonElement>();
+        var rcaVersion=detailJson.GetProperty("case").GetProperty("rowVersion").GetString();
+        using var rcaSelfClose=await ClinicalPostAsync(hvHttp,
+            $"{hvRoot}/rca/{rcaId}/close",hv.Csrf,new {
+                rowVersion=rcaVersion,rootCauseSummary="Synthetic root cause summary"});
+        Assert.Equal(HttpStatusCode.Forbidden,rcaSelfClose.StatusCode);
+        using var rcaClosed=await ClinicalPostAsync(hv2Http,
+            $"{hvRoot}/rca/{rcaId}/close",hv2.Csrf,new {
+                rowVersion=rcaVersion,
+                rootCauseSummary="Completed documented RCA with independently verified action"});
+        Assert.Equal(HttpStatusCode.OK,rcaClosed.StatusCode);
+
+        using var reactionClosed=await ClinicalPostAsync(hv2Http,
+            $"{hvRoot}/reactions/{eventId}/review",hv2.Csrf,new {
+                decision="Closed",rowVersion=confirmedJson.GetProperty("rowVersion").GetString(),
+                reason="Case closed following independently verified RCA"});
+        Assert.Equal(HttpStatusCode.OK,reactionClosed.StatusCode);
+        await using(var hvDb=new HemoDbContext(options)){
+            Assert.Equal(2,await hvDb.EventSymptoms.CountAsync(x=>x.AdverseEventId==eventId));
+            Assert.Equal(1,await hvDb.PhysicianEventAssessments.CountAsync(x=>x.AdverseEventId==eventId));
+            Assert.True(await hvDb.AdverseEvents.AnyAsync(x=>x.AdverseEventId==eventId&&x.Status=="Closed"));
+            Assert.True(await hvDb.RcaCases.AnyAsync(x=>x.RcaCaseId==rcaId&&x.Status=="Closed"));
+            Assert.True(await hvDb.CorrectiveActions.AnyAsync(x=>x.CorrectiveActionId==actionId&&
+                x.Status=="Verified"&&x.VerifiedByUserId==hv2.UserId));
+            Assert.True(await hvDb.AuditEvents.AnyAsync(x=>x.EntityType=="RcaCase"&&
+                x.EntityId==rcaId&&x.ActionType=="Closed"));
         }
 
         using var disabled = await PostAdminAsync(

@@ -1,3 +1,4 @@
+using Hemo.Api.Hemovigilance;
 using Hemo.Api.Blood;
 using Hemo.Api.Clinical;
 using Hemo.Application.Authentication;
@@ -27,7 +28,9 @@ builder.Services.AddProblemDetails(options =>
 builder.Services.AddOpenApi();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddHemoCqrs();
-builder.Services.AddHemoSessionSecurity(builder.Environment.IsDevelopment());
+builder.Services.AddHemoSessionSecurity(
+    builder.Environment.IsDevelopment(),
+    builder.Configuration.GetValue<int>("Security:LoginPermitLimit", 8));
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<HemoDbContext>(
         name: "sqlserver",
@@ -96,6 +99,7 @@ app.MapBloodRequestEndpoints();
 app.MapInventoryEndpoints();
 app.MapLogisticsEndpoints();
 app.MapTransfusionEndpoints();
+app.MapReactionEndpoints();
 
 app.Run();
 

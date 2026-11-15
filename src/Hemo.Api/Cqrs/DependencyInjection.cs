@@ -1,3 +1,4 @@
+using Hemo.Application.Hemovigilance;
 using Hemo.Application.Blood;
 using Hemo.Application.Clinical;
 using Hemo.Application.Authentication;
@@ -65,6 +66,19 @@ public static class DependencyInjection
         services.AddScoped<IRequestHandler<StopTransfusionCommand,Outcome<TransfusionView>>,StopTransfusionHandler>();
         services.AddScoped<IRequestHandler<CompleteTransfusionCommand,Outcome<TransfusionView>>,CompleteTransfusionHandler>();
         services.AddScoped<IRequestHandler<SignoffTransfusionCommand,Outcome<TransfusionView>>,SignoffTransfusionHandler>();
+        services.AddScoped<IRequestHandler<ListReactionsQuery,Outcome<IReadOnlyList<ReactionView>>>,ListReactionsHandler>();
+        services.AddScoped<IRequestHandler<GetReactionQuery,Outcome<ReactionDetails>>,GetReactionHandler>();
+        services.AddScoped<IRequestHandler<ReportReactionCommand,Outcome<ReactionView>>,ReportReactionHandler>();
+        services.AddScoped<IRequestHandler<AssessReactionCommand,Outcome<ReactionView>>,AssessReactionHandler>();
+        services.AddScoped<IRequestHandler<InvestigateReactionCommand,Outcome<ReactionView>>,InvestigateReactionHandler>();
+        services.AddScoped<IRequestHandler<ReviewReactionCommand,Outcome<ReactionView>>,ReviewReactionHandler>();
+        services.AddScoped<IRequestHandler<OpenRcaCommand,Outcome<RcaView>>,OpenRcaHandler>();
+        services.AddScoped<IRequestHandler<AddRcaCauseCommand,Outcome<RcaView>>,AddRcaCauseHandler>();
+        services.AddScoped<IRequestHandler<AssignCorrectiveActionCommand,Outcome<CorrectiveActionView>>,AssignCorrectiveActionHandler>();
+        services.AddScoped<IRequestHandler<CompleteCorrectiveActionCommand,Outcome<CorrectiveActionView>>,CompleteCorrectiveActionHandler>();
+        services.AddScoped<IRequestHandler<VerifyCorrectiveActionCommand,Outcome<CorrectiveActionView>>,VerifyCorrectiveActionHandler>();
+        services.AddScoped<IRequestHandler<CloseRcaCommand,Outcome<RcaView>>,CloseRcaHandler>();
+        services.AddScoped<IRequestHandler<GetRcaQuery,Outcome<RcaDetails>>,GetRcaHandler>();
         return services;
     }
 }

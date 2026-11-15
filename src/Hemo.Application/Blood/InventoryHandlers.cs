@@ -51,3 +51,12 @@ public sealed class FinalizeCrossmatchHandler(IInventoryStore store,IResourcePer
         ? Outcome<CrossmatchView>.Fail("forbidden")
         : await store.FinalizeAsync(c.Actor,c.FacilityId,c.CrossmatchId,c.Input,ct);
 }
+
+public sealed class ListBankWorkHandler(IInventoryStore store,IResourcePermission access)
+    : IRequestHandler<ListBankWorkQuery,Outcome<IReadOnlyList<BankWorkItem>>>
+{
+    public async Task<Outcome<IReadOnlyList<BankWorkItem>>> Handle(ListBankWorkQuery q,CancellationToken ct) =>
+        !await access.CanAsync(q.Actor,"inventory.read",q.FacilityId,null,ct)
+        ? Outcome<IReadOnlyList<BankWorkItem>>.Fail("forbidden")
+        : Outcome<IReadOnlyList<BankWorkItem>>.Ok(await store.WorkAsync(q.FacilityId,ct));
+}

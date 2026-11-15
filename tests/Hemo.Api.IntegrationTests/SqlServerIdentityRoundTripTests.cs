@@ -584,10 +584,10 @@ public sealed class SqlServerIdentityRoundTripTests
         Assert.Equal(HttpStatusCode.OK, issuedUnit.StatusCode);
         var issuedJson = await issuedUnit.Content.ReadFromJsonAsync<JsonElement>();
         var issueId = issuedJson.GetProperty("id").GetInt64();
-        using var issueAgain = await ClinicalPostAsync(bankHttp, logisticsBank + "/issues",
+        using var duplicateLogisticsIssue = await ClinicalPostAsync(bankHttp, logisticsBank + "/issues",
             expert.Csrf, new { unitId = stockUnitId, requestId = bloodRequestId,
                 departmentId = deptA1, conditionNote = (string?)null });
-        Assert.Equal(HttpStatusCode.Conflict, issueAgain.StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, duplicateLogisticsIssue.StatusCode);
 
         using var handedOff = await ClinicalPostAsync(supervisorHttp,
             logisticsBank + "/dispatches", supervisor.Csrf,

@@ -72,3 +72,17 @@ public sealed class InventoryMovement
     public string? NewStatus { get; set; }
     public string? Explanation { get; set; }
 }
+
+public sealed class CrossmatchTest
+{
+    public long CrossmatchTestId { get; set; }
+    public long CrossmatchId { get; set; }
+    public string TestCode { get; set; } = "";
+    public string? TestPhase { get; set; }
+    public string? CellCode { get; set; }
+    public string? Method { get; set; }
+    public string? Result { get; set; }
+    public string? ReactionGrade { get; set; }
+    public DateTime? ObservedAt { get; set; }
+    public byte[] RowVersion { get; set; } = [];
+}

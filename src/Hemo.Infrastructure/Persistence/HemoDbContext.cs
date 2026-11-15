@@ -1,3 +1,5 @@
+using Hemo.Domain.Blood;
+using Hemo.Infrastructure.Blood;
 using Hemo.Domain.Clinical;
 using Hemo.Infrastructure.Clinical;
 using Hemo.Domain.Organization;
@@ -16,6 +18,7 @@ namespace Hemo.Infrastructure.Persistence;
 /// </summary>
 public sealed class HemoDbContext(DbContextOptions<HemoDbContext> options) : DbContext(options)
 {
+    public DbSet<BloodProductType> BloodProductTypes => Set<BloodProductType>();
     public DbSet<BloodRequest> BloodRequests => Set<BloodRequest>();
     public DbSet<BloodRequestItem> BloodRequestItems => Set<BloodRequestItem>();
     public DbSet<RequestClinicalData> RequestClinicalData => Set<RequestClinicalData>();
@@ -44,6 +47,7 @@ public sealed class HemoDbContext(DbContextOptions<HemoDbContext> options) : DbC
         modelBuilder.MapOrganization();
         modelBuilder.MapPatients();
         modelBuilder.MapClinicalRequests();
+        modelBuilder.MapBloodCatalog();
 
         var sessions = modelBuilder.Entity<HemoUserSession>();
         sessions.ToTable("UserSession", "sec", table => table.ExcludeFromMigrations());

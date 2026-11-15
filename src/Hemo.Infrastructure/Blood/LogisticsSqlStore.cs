@@ -18,7 +18,7 @@ public sealed class LogisticsSqlStore(HemoDbContext db,HemoAuditWriter audit):IL
     private static IssueView View(UnitIssue issue,string unitCode,long requestId) =>
         new(issue.UnitIssueId,issue.BloodUnitId,unitCode,requestId,
             issue.IssuedToDepartmentId,issue.Status,issue.IssuedAt,
-            Convert.ToBase64String(issue.RowVersion));
+            Convert.ToBase64String(issue.RowVersion),issue.ReceivedByUserId);
     private static ReturnView View(UnitReturn ret) => new(ret.UnitReturnId,
         ret.UnitIssueId,ret.Status,ret.Decision,Convert.ToBase64String(ret.RowVersion));
 

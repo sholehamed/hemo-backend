@@ -8,6 +8,8 @@ public sealed record ReactionView(long Id,long TransfusionId,long EncounterId,
 public sealed record ReactionDetails(ReactionView Event,IReadOnlyList<string> Symptoms,
     IReadOnlyList<string> Assessments,IReadOnlyList<string> Investigations,
     IReadOnlyList<CorrectiveActionView> Actions);
+public sealed record RcaDetails(RcaView Case,IReadOnlyList<string> Causes,
+    IReadOnlyList<CorrectiveActionView> Actions);
 public sealed record RcaView(long Id,long EventId,string Status,string CaseNo,string RowVersion);
 public sealed record CorrectiveActionView(long Id,long RcaId,string Title,string Status,
     long AssignedToUserId,string RowVersion);
@@ -38,6 +40,8 @@ public sealed record InvestigateReactionCommand(long Actor,long Facility,long Id
     InvestigationRequest Input):ICommand<Outcome<ReactionView>>;
 public sealed record ReviewReactionCommand(long Actor,long Facility,long Id,
     ReviewReactionRequest Input):ICommand<Outcome<ReactionView>>;
+public sealed record GetRcaQuery(long Actor,long Facility,long RcaId)
+    : IQuery<Outcome<RcaDetails>>;
 public sealed record OpenRcaCommand(long Actor,long Facility,long EventId)
     : ICommand<Outcome<RcaView>>;
 public sealed record AddRcaCauseCommand(long Actor,long Facility,long RcaId,
@@ -63,6 +67,7 @@ public interface IReactionStore
         InvestigationRequest input,CancellationToken ct);
     Task<Outcome<ReactionView>> ReviewAsync(long actor,long facility,long id,
         ReviewReactionRequest input,CancellationToken ct);
+    Task<Outcome<RcaDetails>> GetRcaAsync(long facility,long rcaId,CancellationToken ct);
     Task<Outcome<RcaView>> OpenRcaAsync(long actor,long facility,long eventId,CancellationToken ct);
     Task<Outcome<RcaView>> CauseAsync(long actor,long facility,long rcaId,
         RcaCauseRequest input,CancellationToken ct);

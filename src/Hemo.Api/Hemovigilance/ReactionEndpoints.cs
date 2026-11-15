@@ -51,6 +51,10 @@ public static class ReactionEndpoints
             if(!await MutationCsrf.ValidAsync(http,anti))return Results.BadRequest(new{code="invalid_csrf"});
             return Reply(await handler.Handle(new(Actor(http),facilityId,id,input),ct));
         });
+        hv.MapGet("/rca/{rcaId:long}",async(long facilityId,long rcaId,
+            HttpContext http,
+            IRequestHandler<GetRcaQuery,Outcome<RcaDetails>> handler,CancellationToken ct)=>
+            Reply(await handler.Handle(new(Actor(http),facilityId,rcaId),ct)));
         hv.MapPost("/reactions/{eventId:long}/rca",async(long facilityId,long eventId,
             HttpContext http,IAntiforgery anti,
             IRequestHandler<OpenRcaCommand,Outcome<RcaView>> handler,CancellationToken ct)=>{

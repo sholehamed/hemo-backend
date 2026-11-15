@@ -7,7 +7,7 @@ public sealed record IssueUnitRequest(long UnitId,long RequestId,long Department
 public sealed record CreateDispatchRequest(long IssueId,string ContainerType,
     decimal? TemperatureAtExitC,string? Note);
 public sealed record ReceiveIssueRequest(string RowVersion,string? ConditionNote);
-public sealed record ReturnIssueRequest(string ReasonCode,string? ConditionCode,
+public sealed record ReturnIssueRequest(long ReturnedByUserId,string ReasonCode,string? ConditionCode,
     decimal? TemperatureC,string? Notes);
 public sealed record ReviewReturnRequest(string Decision,string RowVersion,string? Note);
 public sealed record IssueView(long Id,long UnitId,string UnitCode,long RequestId,

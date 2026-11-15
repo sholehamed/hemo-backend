@@ -782,6 +782,21 @@ public sealed class SqlServerIdentityRoundTripTests
                 temperatureC=(decimal?)36.9m,spo2=(byte?)99,respiratoryRate=(short?)18,
                 urineOutputMl=(decimal?)null,alertFlag=false,clinicalNote=(string?)null});
         Assert.Equal(HttpStatusCode.Conflict,afterSignoff.StatusCode);
+        using var secondPreparation=await ClinicalPostAsync(nurseHttp,
+            transfusionRoot+"/",nurse.Csrf,new {issueId=st08IssueId});
+        Assert.Equal(HttpStatusCode.Conflict,secondPreparation.StatusCode);
+        using var unsafeReturn=await ClinicalPostAsync(supervisorHttp,
+            $"{wardLogistics}/issues/{st08IssueId}/return",supervisor.Csrf,
+            new {returnedByUserId=nurse.UserId,reasonCode="INAPPROPRIATE",
+                conditionCode="Sealed",temperatureC=(decimal?)4m,
+                notes="Must be denied after transfusion"});
+        Assert.Equal(HttpStatusCode.Conflict,unsafeReturn.StatusCode);
+        using var invalidCompletedStop=await ClinicalPostAsync(nurseHttp,
+            $"{transfusionRoot}/{transfusionId}/stop",nurse.Csrf,
+            new {rowVersion=completedJson.GetProperty("rowVersion").GetString(),
+                reason="Cannot stop a completed and signed off transfusion"});
+        Assert.Equal(HttpStatusCode.Conflict,invalidCompletedStop.StatusCode);
+
         await using(var st08db=new HemoDbContext(options)) {
             Assert.Equal(2,await st08db.VitalObservations.CountAsync(v=>
                 v.TransfusionId==transfusionId));

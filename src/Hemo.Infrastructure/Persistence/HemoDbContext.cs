@@ -25,6 +25,11 @@ public sealed class HemoDbContext(DbContextOptions<HemoDbContext> options) : DbC
     public DbSet<Crossmatch> Crossmatches => Set<Crossmatch>();
     public DbSet<CrossmatchTest> CrossmatchTests => Set<CrossmatchTest>();
     public DbSet<InventoryMovement> InventoryMovements => Set<InventoryMovement>();
+    public DbSet<UnitIssue> UnitIssues => Set<UnitIssue>();
+    public DbSet<Dispatch> Dispatches => Set<Dispatch>();
+    public DbSet<DispatchItem> DispatchItems => Set<DispatchItem>();
+    public DbSet<UnitReturn> UnitReturns => Set<UnitReturn>();
+    public DbSet<UnitWaste> UnitWastes => Set<UnitWaste>();
     public DbSet<BloodRequest> BloodRequests => Set<BloodRequest>();
     public DbSet<BloodRequestItem> BloodRequestItems => Set<BloodRequestItem>();
     public DbSet<RequestClinicalData> RequestClinicalData => Set<RequestClinicalData>();
@@ -55,6 +60,7 @@ public sealed class HemoDbContext(DbContextOptions<HemoDbContext> options) : DbC
         modelBuilder.MapClinicalRequests();
         modelBuilder.MapBloodCatalog();
         modelBuilder.MapBloodInventory();
+        modelBuilder.MapBloodLogistics();
 
         var sessions = modelBuilder.Entity<HemoUserSession>();
         sessions.ToTable("UserSession", "sec", table => table.ExcludeFromMigrations());

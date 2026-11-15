@@ -28,7 +28,9 @@ builder.Services.AddProblemDetails(options =>
 builder.Services.AddOpenApi();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddHemoCqrs();
-builder.Services.AddHemoSessionSecurity(builder.Environment.IsDevelopment());
+builder.Services.AddHemoSessionSecurity(
+    builder.Environment.IsDevelopment(),
+    builder.Configuration.GetValue<int>("Security:LoginPermitLimit", 8));
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<HemoDbContext>(
         name: "sqlserver",

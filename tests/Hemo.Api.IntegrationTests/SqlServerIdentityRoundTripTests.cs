@@ -127,7 +127,8 @@ public sealed class SqlServerIdentityRoundTripTests
 
         await using var factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
-                builder.UseSetting("ConnectionStrings:Hemo", hemo.ConnectionString));
+                builder.UseSetting("ConnectionStrings:Hemo", hemo.ConnectionString)
+                    .UseSetting("Security:LoginPermitLimit", "24"));
         using var client = factory.CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = true });
 

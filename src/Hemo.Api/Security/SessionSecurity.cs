@@ -22,8 +22,13 @@ public static class SessionSecurity
     public const string Scheme = "Hemo.Session";
 
     public static IServiceCollection AddHemoSessionSecurity(
-        this IServiceCollection services, bool isDevelopment)
+        this IServiceCollection services, bool isDevelopment,
+        int loginPermitLimit = 8)
     {
+        // Default remains eight attempts/minute per IP. CI may configure a larger
+        // bounded value to exercise many independently signed-in clinical roles.
+        if (loginPermitLimit is < 1 or > 32)
+            throw new ArgumentOutOfRangeException(nameof(loginPermitLimit));
         services.AddScoped<IPasswordHasher<AccountUser>, PasswordHasher<AccountUser>>();
         services.AddScoped<HemoAccessService>();
         services.AddScoped<ResourceAccessService>();
@@ -98,7 +103,7 @@ public static class SessionSecurity
                     http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                     _ => new FixedWindowRateLimiterOptions
                     {
-                        PermitLimit = 8, Window = TimeSpan.FromMinutes(1),
+                        PermitLimit = loginPermitLimit, Window = TimeSpan.FromMinutes(1),
                         QueueLimit = 0, AutoReplenishment = true
                     }));
         });

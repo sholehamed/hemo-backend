@@ -24,6 +24,30 @@ public sealed class InventorySqlStore(HemoDbContext db,HemoAuditWriter audit) : 
             .OrderBy(x=>x.ExpiryDate).Take(300).ToArrayAsync(ct))
             .Select(View).ToArray();
 
+
+    public async Task<IReadOnlyList<BankWorkItem>> WorkAsync(long facility,CancellationToken ct)
+    {
+        var rows=await (from res in db.UnitReservations
+            join unit in db.BloodUnits on res.BloodUnitId equals unit.BloodUnitId
+            join item in db.BloodRequestItems on res.BloodRequestItemId equals item.BloodRequestItemId
+            join req in db.BloodRequests on item.BloodRequestId equals req.BloodRequestId
+            join cross in db.Crossmatches
+                on new { res.BloodUnitId,res.BloodRequestItemId }
+                equals new { cross.BloodUnitId,cross.BloodRequestItemId } into matches
+            from x in matches.DefaultIfEmpty()
+            where unit.CurrentFacilityId==facility && res.Status=="Active"
+            orderby res.ReservedAt descending
+            select new {res.UnitReservationId,RequestId=req.BloodRequestId,
+                UnitId=unit.BloodUnitId,unit.UnitCode,ReservationStatus=res.Status,
+                CrossmatchId=(long?)x.CrossmatchId,
+                CrossmatchStatus=x.Status,CompatibilityResult=x.CompatibilityResult,
+                CrossmatchVersion=x.RowVersion}).Take(300).AsNoTracking().ToArrayAsync(ct);
+        return rows.Select(x=>new BankWorkItem(x.UnitReservationId,x.RequestId,x.UnitId,
+            x.UnitCode,x.ReservationStatus,x.CrossmatchId,x.CrossmatchStatus,
+            x.CompatibilityResult,x.CrossmatchVersion==null?null:
+                Convert.ToBase64String(x.CrossmatchVersion))).ToArray();
+    }
+
     public async Task<IReadOnlyList<BloodGroupOption>> GroupsAsync(CancellationToken ct) =>
         await db.BloodGroups.AsNoTracking().OrderBy(x=>x.Code)
             .Select(x=>new BloodGroupOption(x.BloodGroupId,x.Code)).ToArrayAsync(ct);

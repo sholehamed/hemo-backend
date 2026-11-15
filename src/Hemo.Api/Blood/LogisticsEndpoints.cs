@@ -14,6 +14,9 @@ public static class LogisticsEndpoints
         var bank=app.MapGroup("/api/v1/facilities/{facilityId:long}/logistics")
             .RequireAuthorization().WithTags("Blood Logistics");
 
+        bank.MapGet("/returns",async(long facilityId,HttpContext http,
+            IRequestHandler<ListReturnsQuery,Outcome<IReadOnlyList<ReturnView>>> handler,
+            CancellationToken ct)=>Reply(await handler.Handle(new(Actor(http),facilityId),ct)));
         bank.MapPost("/issues",async(long facilityId,IssueUnitRequest input,HttpContext http,
             IAntiforgery anti,IRequestHandler<IssueUnitCommand,Outcome<IssueView>> handler,
             CancellationToken ct)=>{

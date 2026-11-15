@@ -52,3 +52,12 @@ public sealed class ReviewReturnHandler(ILogisticsStore store,IResourcePermissio
         ? Outcome<ReturnView>.Fail("forbidden")
         : await store.ReviewReturnAsync(c.Actor,c.FacilityId,c.ReturnId,c.Input,ct);
 }
+
+public sealed class ListReturnsHandler(ILogisticsStore store,IResourcePermission access)
+    : IRequestHandler<ListReturnsQuery,Outcome<IReadOnlyList<ReturnView>>>
+{
+    public async Task<Outcome<IReadOnlyList<ReturnView>>> Handle(ListReturnsQuery q,CancellationToken ct) =>
+        !await access.CanAsync(q.Actor,"return.manage",q.FacilityId,null,ct)
+        ? Outcome<IReadOnlyList<ReturnView>>.Fail("forbidden")
+        : Outcome<IReadOnlyList<ReturnView>>.Ok(await store.ReturnsAsync(q.FacilityId,ct));
+}

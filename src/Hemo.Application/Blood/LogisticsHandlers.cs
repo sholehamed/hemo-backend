@@ -40,7 +40,7 @@ public sealed class ReturnIssueHandler(ILogisticsStore store,IResourcePermission
     : IRequestHandler<ReturnIssueCommand,Outcome<ReturnView>>
 {
     public async Task<Outcome<ReturnView>> Handle(ReturnIssueCommand c,CancellationToken ct) =>
-        !await access.CanAsync(c.Actor,"issue.receive",c.FacilityId,c.DepartmentId,ct)
+        !await access.CanAsync(c.Actor,"return.manage",c.FacilityId,null,ct)
         ? Outcome<ReturnView>.Fail("forbidden")
         : await store.ReturnAsync(c.Actor,c.FacilityId,c.DepartmentId,c.IssueId,c.Input,ct);
 }

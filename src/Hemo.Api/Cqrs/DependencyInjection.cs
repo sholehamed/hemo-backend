@@ -48,6 +48,7 @@ public static class DependencyInjection
         services.AddScoped<IRequestHandler<ReserveStockCommand,Outcome<long>>,ReserveStockHandler>();
         services.AddScoped<IRequestHandler<RecordCrossmatchCommand,Outcome<CrossmatchView>>,RecordCrossmatchHandler>();
         services.AddScoped<IRequestHandler<FinalizeCrossmatchCommand,Outcome<CrossmatchView>>,FinalizeCrossmatchHandler>();
+        services.AddScoped<IRequestHandler<ListBankWorkQuery,Outcome<IReadOnlyList<BankWorkItem>>>,ListBankWorkHandler>();
         return services;
     }
 }

@@ -391,6 +391,116 @@ public sealed class SqlServerIdentityRoundTripTests
                 x.EntityType == "Encounter" && x.ActionType == "Admitted"));
         }
 
+        // ST-05: a nurse submits a verified Encounter request; a separate doctor
+        // approves it. Server scope, self-approval and concurrency are checked.
+        async Task<(long UserId, HttpClient Http, string Csrf)> NewClinicianAsync(
+            string username, string password, string roleCode)
+        {
+            using var userResponse = await PostAdminAsync("/api/v1/admin/users/", new
+            {
+                userName = username, displayName = "Clinical Fixture " + username,
+                initialPassword = password
+            });
+            Assert.Equal(HttpStatusCode.Created, userResponse.StatusCode);
+            var userJson = await userResponse.Content.ReadFromJsonAsync<JsonElement>();
+            var id = userJson.GetProperty("id").GetInt64();
+            long roleId;
+            await using (var roleDb = new HemoDbContext(options))
+                roleId = await roleDb.Roles.Where(x => x.Code == roleCode)
+                    .Select(x => x.RoleId).SingleAsync();
+            using var granted = await PostAdminAsync(
+                $"/api/v1/admin/users/{id}/grants", new
+                {
+                    roleId, facilityId = (long?)facilityA,
+                    departmentId = (long?)deptA1
+                });
+            Assert.Equal(HttpStatusCode.Created, granted.StatusCode);
+            var http = factory.CreateClient(new WebApplicationFactoryClientOptions
+            { AllowAutoRedirect = false, HandleCookies = true });
+            using var initial = await http.GetAsync("/api/v1/auth/csrf");
+            var initialCsrf = Uri.UnescapeDataString(initial.Headers.GetValues("Set-Cookie")
+                .First(x => x.StartsWith("XSRF-TOKEN=", StringComparison.Ordinal))
+                .Split(';')[0].Substring("XSRF-TOKEN=".Length));
+            using var signin = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/login")
+            {
+                Content = JsonContent.Create(new { userName = username, password })
+            };
+            signin.Headers.TryAddWithoutValidation("X-XSRF-TOKEN", initialCsrf);
+            using var response = await http.SendAsync(signin);
+            Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+            using var fresh = await http.GetAsync("/api/v1/auth/csrf");
+            var csrfToken = Uri.UnescapeDataString(fresh.Headers.GetValues("Set-Cookie")
+                .First(x => x.StartsWith("XSRF-TOKEN=", StringComparison.Ordinal))
+                .Split(';')[0].Substring("XSRF-TOKEN=".Length));
+            return (id, http, csrfToken);
+        }
+
+        async Task<HttpResponseMessage> ClinicalPostAsync(HttpClient http,
+            string uri, string csrfValue, object input)
+        {
+            using var message = new HttpRequestMessage(HttpMethod.Post, uri)
+            { Content = JsonContent.Create(input) };
+            message.Headers.TryAddWithoutValidation("X-XSRF-TOKEN", csrfValue);
+            return await http.SendAsync(message);
+        }
+
+        var nurse = await NewClinicianAsync("st05_nurse", "Nurse-Ci_2026-Str0ng!", "NURSE");
+        var doctor = await NewClinicianAsync("st05_doctor", "Doctor-Ci_2026-Str0ng!", "DOCTOR");
+        using var nurseHttp = nurse.Http;
+        using var doctorHttp = doctor.Http;
+        var requestRoot = $"/api/v1/facilities/{facilityA}/departments/{deptA1}/blood-requests";
+        using var productResponse = await nurseHttp.GetAsync(requestRoot + "/products");
+        Assert.Equal(HttpStatusCode.OK, productResponse.StatusCode);
+        var productsJson = await productResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var rbc = productsJson.EnumerateArray()
+            .First(x => x.GetProperty("code").GetString() == "RBC");
+        var productId = rbc.GetProperty("id").GetInt64();
+        var draft = new
+        {
+            encounterId, productTypeId = productId, quantity = 1m,
+            priority = "Routine", indication = "Synthetic integration verification only",
+            diagnosis = (string?)null, specialRequirements = (string?)null,
+            hemoglobin = (decimal?)null, previousReaction = (bool?)null
+        };
+        using var createdRequest = await ClinicalPostAsync(
+            nurseHttp, requestRoot + "/", nurse.Csrf, draft);
+        Assert.Equal(HttpStatusCode.Created, createdRequest.StatusCode);
+        var requestJson = await createdRequest.Content.ReadFromJsonAsync<JsonElement>();
+        var bloodRequestId = requestJson.GetProperty("bloodRequestId").GetInt64();
+        var version = requestJson.GetProperty("rowVersion").GetString();
+        Assert.Equal("AwaitingDoctor", requestJson.GetProperty("status").GetString());
+
+        using var scopedRequestDenied = await nurseHttp.GetAsync(
+            $"/api/v1/facilities/{facilityB}/departments/{deptB1}/blood-requests/{bloodRequestId}");
+        Assert.Equal(HttpStatusCode.Forbidden, scopedRequestDenied.StatusCode);
+        using var nurseReview = await ClinicalPostAsync(
+            nurseHttp, $"{requestRoot}/{bloodRequestId}/review", nurse.Csrf,
+            new { decision = "Approved", reason = (string?)null, rowVersion = version });
+        Assert.Equal(HttpStatusCode.Forbidden, nurseReview.StatusCode);
+
+        using var doctorReview = await ClinicalPostAsync(
+            doctorHttp, $"{requestRoot}/{bloodRequestId}/review", doctor.Csrf,
+            new { decision = "Approved", reason = (string?)null, rowVersion = version });
+        Assert.Equal(HttpStatusCode.OK, doctorReview.StatusCode);
+        var reviewedJson = await doctorReview.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Approved", reviewedJson.GetProperty("status").GetString());
+
+        using var staleReview = await ClinicalPostAsync(
+            doctorHttp, $"{requestRoot}/{bloodRequestId}/review", doctor.Csrf,
+            new { decision = "Rejected", reason = "Concurrent review",
+                rowVersion = version });
+        Assert.Equal(HttpStatusCode.Conflict, staleReview.StatusCode);
+        await using (var clinicalDb = new HemoDbContext(options))
+        {
+            Assert.Equal(1, await clinicalDb.RequestApprovals.CountAsync(
+                x => x.BloodRequestId == bloodRequestId));
+            Assert.True(await clinicalDb.ClinicalTasks.AnyAsync(x =>
+                x.BloodRequestId == bloodRequestId && x.Status == "Completed"));
+            Assert.True(await clinicalDb.AuditEvents.AnyAsync(x =>
+                x.EntityType == "BloodRequest" && x.EntityId == bloodRequestId
+                && x.ActionType == "Approved"));
+        }
+
         using var disabled = await PostAdminAsync(
             $"/api/v1/admin/users/{scopedUserId}/deactivate", new { });
         Assert.Equal(HttpStatusCode.NoContent, disabled.StatusCode);

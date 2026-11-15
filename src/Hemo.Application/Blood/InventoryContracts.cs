@@ -11,7 +11,7 @@ public sealed record RegisterUnitRequest(string UnitCode,long ProductTypeId,long
     DateOnly ExpiryDate,string? StorageLocation);
 public sealed record ReserveUnitRequest(long UnitId,long RequestId);
 public sealed record RecordCrossmatchRequest(long ReservationId,string CompatibilityResult,
-    string? Comments);
+    string TestCode,string TestResult,string? Comments);
 public sealed record FinalizeCrossmatchRequest(string RowVersion);
 
 public sealed record ListStockQuery(long Actor,long FacilityId) : IQuery<Outcome<IReadOnlyList<InventoryUnitView>>>;

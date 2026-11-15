@@ -78,6 +78,7 @@ public static class DependencyInjection
         services.AddScoped<IRequestHandler<CompleteCorrectiveActionCommand,Outcome<CorrectiveActionView>>,CompleteCorrectiveActionHandler>();
         services.AddScoped<IRequestHandler<VerifyCorrectiveActionCommand,Outcome<CorrectiveActionView>>,VerifyCorrectiveActionHandler>();
         services.AddScoped<IRequestHandler<CloseRcaCommand,Outcome<RcaView>>,CloseRcaHandler>();
+        services.AddScoped<IRequestHandler<GetRcaQuery,Outcome<RcaDetails>>,GetRcaHandler>();
         return services;
     }
 }

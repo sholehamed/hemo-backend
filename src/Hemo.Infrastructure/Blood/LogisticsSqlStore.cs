@@ -207,6 +207,10 @@ public sealed class LogisticsSqlStore(HemoDbContext db,HemoAuditWriter audit):IL
             return Outcome<ReturnView>.Fail("invalid_state");
         if(await db.UnitReturns.AnyAsync(x=>x.UnitIssueId==issueId,ct))
             return Outcome<ReturnView>.Fail("already_returned");
+        // A consumed/started/finished transfusion unit cannot re-enter return inventory.
+        if(await db.Transfusions.AnyAsync(x=>x.BloodUnitId==row.Unit.BloodUnitId &&
+            x.Status!="Cancelled",ct))
+            return Outcome<ReturnView>.Fail("invalid_state");
         // Never return into available stock automatically. Full disposal/restock SOP is external.
         row.Issue.Status="Returned";row.Unit.Status="Quarantined";row.Unit.IsQuarantined=true;
         var ret=new UnitReturn{UnitIssueId=issueId,BloodUnitId=row.Unit.BloodUnitId,

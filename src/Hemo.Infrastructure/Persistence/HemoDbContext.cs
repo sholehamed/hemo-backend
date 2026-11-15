@@ -19,6 +19,12 @@ namespace Hemo.Infrastructure.Persistence;
 public sealed class HemoDbContext(DbContextOptions<HemoDbContext> options) : DbContext(options)
 {
     public DbSet<BloodProductType> BloodProductTypes => Set<BloodProductType>();
+    public DbSet<BloodGroup> BloodGroups => Set<BloodGroup>();
+    public DbSet<BloodUnit> BloodUnits => Set<BloodUnit>();
+    public DbSet<UnitReservation> UnitReservations => Set<UnitReservation>();
+    public DbSet<Crossmatch> Crossmatches => Set<Crossmatch>();
+    public DbSet<CrossmatchTest> CrossmatchTests => Set<CrossmatchTest>();
+    public DbSet<InventoryMovement> InventoryMovements => Set<InventoryMovement>();
     public DbSet<BloodRequest> BloodRequests => Set<BloodRequest>();
     public DbSet<BloodRequestItem> BloodRequestItems => Set<BloodRequestItem>();
     public DbSet<RequestClinicalData> RequestClinicalData => Set<RequestClinicalData>();
@@ -48,6 +54,7 @@ public sealed class HemoDbContext(DbContextOptions<HemoDbContext> options) : DbC
         modelBuilder.MapPatients();
         modelBuilder.MapClinicalRequests();
         modelBuilder.MapBloodCatalog();
+        modelBuilder.MapBloodInventory();
 
         var sessions = modelBuilder.Entity<HemoUserSession>();
         sessions.ToTable("UserSession", "sec", table => table.ExcludeFromMigrations());

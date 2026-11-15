@@ -62,6 +62,19 @@ public static class BloodInventoryModel
         cross.HasOne<AccountUser>().WithMany().HasForeignKey(x=>x.PerformedByUserId).OnDelete(DeleteBehavior.NoAction);
         cross.HasOne<AccountUser>().WithMany().HasForeignKey(x=>x.ApprovedByUserId).OnDelete(DeleteBehavior.NoAction);
 
+        var evidence=model.Entity<CrossmatchTest>();
+        evidence.ToTable("CrossmatchTest","blood",t=>t.ExcludeFromMigrations());
+        evidence.HasKey(x=>x.CrossmatchTestId);
+        evidence.Property(x=>x.TestCode).HasMaxLength(60).IsUnicode(false);
+        evidence.Property(x=>x.TestPhase).HasMaxLength(35).IsUnicode(false);
+        evidence.Property(x=>x.CellCode).HasMaxLength(40).IsUnicode(false);
+        evidence.Property(x=>x.Method).HasMaxLength(100);
+        evidence.Property(x=>x.Result).HasMaxLength(35).IsUnicode(false);
+        evidence.Property(x=>x.ReactionGrade).HasMaxLength(30);
+        evidence.Property(x=>x.ObservedAt).HasColumnType("datetime2(3)");
+        evidence.Property(x=>x.RowVersion).IsRowVersion();
+        evidence.HasOne<Crossmatch>().WithMany().HasForeignKey(x=>x.CrossmatchId).OnDelete(DeleteBehavior.NoAction);
+
         var movement=model.Entity<InventoryMovement>();
         movement.ToTable("InventoryMovement","blood",t=>t.ExcludeFromMigrations());
         movement.HasKey(x=>x.InventoryMovementId);

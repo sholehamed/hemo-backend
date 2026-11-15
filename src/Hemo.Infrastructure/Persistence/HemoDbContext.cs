@@ -30,6 +30,11 @@ public sealed class HemoDbContext(DbContextOptions<HemoDbContext> options) : DbC
     public DbSet<DispatchItem> DispatchItems => Set<DispatchItem>();
     public DbSet<UnitReturn> UnitReturns => Set<UnitReturn>();
     public DbSet<UnitWaste> UnitWastes => Set<UnitWaste>();
+    public DbSet<Transfusion> Transfusions => Set<Transfusion>();
+    public DbSet<TransfusionChecklist> TransfusionChecklists => Set<TransfusionChecklist>();
+    public DbSet<VitalObservation> VitalObservations => Set<VitalObservation>();
+    public DbSet<TransfusionAction> TransfusionActions => Set<TransfusionAction>();
+    public DbSet<TransfusionSignoff> TransfusionSignoffs => Set<TransfusionSignoff>();
     public DbSet<BloodRequest> BloodRequests => Set<BloodRequest>();
     public DbSet<BloodRequestItem> BloodRequestItems => Set<BloodRequestItem>();
     public DbSet<RequestClinicalData> RequestClinicalData => Set<RequestClinicalData>();
@@ -58,6 +63,7 @@ public sealed class HemoDbContext(DbContextOptions<HemoDbContext> options) : DbC
         modelBuilder.MapOrganization();
         modelBuilder.MapPatients();
         modelBuilder.MapClinicalRequests();
+        modelBuilder.MapTransfusions();
         modelBuilder.MapBloodCatalog();
         modelBuilder.MapBloodInventory();
         modelBuilder.MapBloodLogistics();

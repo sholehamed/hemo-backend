@@ -574,6 +574,90 @@ public sealed class SqlServerIdentityRoundTripTests
                 && x.ActionType == "Finalized"));
         }
 
+        // ST-07: handoff requires a finalized compatible lab record, ward receipt
+        // by a distinct authorized nurse, and a reviewed quarantine return.
+        var logisticsBank = $"/api/v1/facilities/{facilityA}/logistics";
+        var wardLogistics = $"/api/v1/facilities/{facilityA}/departments/{deptA1}/logistics";
+        using var issuedUnit = await ClinicalPostAsync(bankHttp, logisticsBank + "/issues",
+            expert.Csrf, new { unitId = stockUnitId, requestId = bloodRequestId,
+                departmentId = deptA1, conditionNote = "Synthetic issue verification" });
+        Assert.Equal(HttpStatusCode.OK, issuedUnit.StatusCode);
+        var issuedJson = await issuedUnit.Content.ReadFromJsonAsync<JsonElement>();
+        var issueId = issuedJson.GetProperty("id").GetInt64();
+        using var duplicateLogisticsIssue = await ClinicalPostAsync(bankHttp, logisticsBank + "/issues",
+            expert.Csrf, new { unitId = stockUnitId, requestId = bloodRequestId,
+                departmentId = deptA1, conditionNote = (string?)null });
+        Assert.Equal(HttpStatusCode.Conflict, duplicateLogisticsIssue.StatusCode);
+
+        using var handedOff = await ClinicalPostAsync(supervisorHttp,
+            logisticsBank + "/dispatches", supervisor.Csrf,
+            new { issueId, containerType = "CI sealed box",
+                temperatureAtExitC = (decimal?)4.5m, note = "Synthetic dispatch" });
+        Assert.Equal(HttpStatusCode.OK, handedOff.StatusCode);
+        var dispatchJson = await handedOff.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("InTransit", dispatchJson.GetProperty("status").GetString());
+
+        using var unauthorizedWard = await nurseHttp.GetAsync(
+            $"/api/v1/facilities/{facilityB}/departments/{deptB1}/logistics/issues");
+        Assert.Equal(HttpStatusCode.Forbidden, unauthorizedWard.StatusCode);
+        using var wardIssues = await nurseHttp.GetAsync(wardLogistics + "/issues");
+        Assert.Equal(HttpStatusCode.OK, wardIssues.StatusCode);
+        var issuesJson = await wardIssues.Content.ReadFromJsonAsync<JsonElement>();
+        var inTransit = issuesJson.EnumerateArray()
+            .Single(x => x.GetProperty("id").GetInt64() == issueId);
+        var issueVersion = inTransit.GetProperty("rowVersion").GetString();
+
+        using var wardReceipt = await ClinicalPostAsync(nurseHttp,
+            $"{wardLogistics}/issues/{issueId}/receive", nurse.Csrf,
+            new { rowVersion = issueVersion, conditionNote = "Unit physically received in synthetic ward" });
+        Assert.Equal(HttpStatusCode.OK, wardReceipt.StatusCode);
+        var receiptJson = await wardReceipt.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Received", receiptJson.GetProperty("status").GetString());
+        using var duplicateReceipt = await ClinicalPostAsync(nurseHttp,
+            $"{wardLogistics}/issues/{issueId}/receive", nurse.Csrf,
+            new { rowVersion = issueVersion, conditionNote = (string?)null });
+        Assert.Equal(HttpStatusCode.Conflict, duplicateReceipt.StatusCode);
+
+        using var returnedUnit = await ClinicalPostAsync(supervisorHttp,
+            $"{wardLogistics}/issues/{issueId}/return", supervisor.Csrf,
+            new { returnedByUserId = nurse.UserId, reasonCode = "CI-UNUSED",
+                conditionCode = "Sealed", temperatureC = (decimal?)4.0m,
+                notes = "Quarantine until independent signoff" });
+        Assert.Equal(HttpStatusCode.OK, returnedUnit.StatusCode);
+        var returnJson = await returnedUnit.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Pending", returnJson.GetProperty("status").GetString());
+        var returnId = returnJson.GetProperty("id").GetInt64();
+        var returnVersion = returnJson.GetProperty("rowVersion").GetString();
+
+        using var selfReview = await ClinicalPostAsync(supervisorHttp,
+            $"{logisticsBank}/returns/{returnId}/review", supervisor.Csrf,
+            new { decision = "Quarantine", rowVersion = returnVersion,
+                note = (string?)null });
+        Assert.Equal(HttpStatusCode.Forbidden, selfReview.StatusCode);
+
+        var supervisor2 = await NewClinicianAsync("st07_review",
+            "Super2-Ci_2026-Str0ng!", "SUPERVISOR", true);
+        using var supervisor2Http = supervisor2.Http;
+        using var reviewedReturn = await ClinicalPostAsync(supervisor2Http,
+            $"{logisticsBank}/returns/{returnId}/review", supervisor2.Csrf,
+            new { decision = "Quarantine", rowVersion = returnVersion,
+                note = "Keep segregated pending hospital SOP" });
+        Assert.Equal(HttpStatusCode.OK, reviewedReturn.StatusCode);
+        await using (var logisticsDb = new HemoDbContext(options))
+        {
+            Assert.True(await logisticsDb.UnitIssues.AnyAsync(x =>
+                x.UnitIssueId == issueId && x.Status == "Returned"));
+            Assert.True(await logisticsDb.Dispatches.AnyAsync(x =>
+                x.DispatchId == dispatchJson.GetProperty("id").GetInt64()
+                && x.Status == "Delivered"));
+            Assert.True(await logisticsDb.BloodUnits.AnyAsync(x =>
+                x.BloodUnitId == stockUnitId && x.IsQuarantined
+                && x.Status == "Quarantined"));
+            Assert.True(await logisticsDb.UnitReturns.AnyAsync(x =>
+                x.UnitReturnId == returnId && x.Status == "Approved"
+                && x.Decision == "Quarantine"));
+        }
+
         using var disabled = await PostAdminAsync(
             $"/api/v1/admin/users/{scopedUserId}/deactivate", new { });
         Assert.Equal(HttpStatusCode.NoContent, disabled.StatusCode);

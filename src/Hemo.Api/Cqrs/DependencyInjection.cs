@@ -49,6 +49,13 @@ public static class DependencyInjection
         services.AddScoped<IRequestHandler<RecordCrossmatchCommand,Outcome<CrossmatchView>>,RecordCrossmatchHandler>();
         services.AddScoped<IRequestHandler<FinalizeCrossmatchCommand,Outcome<CrossmatchView>>,FinalizeCrossmatchHandler>();
         services.AddScoped<IRequestHandler<ListBankWorkQuery,Outcome<IReadOnlyList<BankWorkItem>>>,ListBankWorkHandler>();
+        services.AddScoped<IRequestHandler<ListIssuesQuery,Outcome<IReadOnlyList<IssueView>>>,ListIssuesHandler>();
+        services.AddScoped<IRequestHandler<IssueUnitCommand,Outcome<IssueView>>,IssueUnitHandler>();
+        services.AddScoped<IRequestHandler<DispatchIssueCommand,Outcome<DispatchView>>,DispatchIssueHandler>();
+        services.AddScoped<IRequestHandler<ReceiveIssueCommand,Outcome<IssueView>>,ReceiveIssueHandler>();
+        services.AddScoped<IRequestHandler<ReturnIssueCommand,Outcome<ReturnView>>,ReturnIssueHandler>();
+        services.AddScoped<IRequestHandler<ReviewReturnCommand,Outcome<ReturnView>>,ReviewReturnHandler>();
+        services.AddScoped<IRequestHandler<ListReturnsQuery,Outcome<IReadOnlyList<ReturnView>>>,ListReturnsHandler>();
         return services;
     }
 }

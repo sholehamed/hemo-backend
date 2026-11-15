@@ -109,7 +109,8 @@ public sealed class InventorySqlStore(HemoDbContext db,HemoAuditWriter audit) : 
         if(unit.ProductTypeId!=request.Item.ProductTypeId)
             return Outcome<long>.Fail("product_mismatch");
         var reservedCount=await db.UnitReservations.CountAsync(x=>
-            x.BloodRequestItemId==request.Item.BloodRequestItemId && x.Status=="Active",ct);
+            x.BloodRequestItemId==request.Item.BloodRequestItemId &&
+                (x.Status=="Active"||x.Status=="Consumed"),ct);
         if(reservedCount>=request.Item.RequestedQuantity)
             return Outcome<long>.Fail("quantity_exceeded");
         if(await db.UnitReservations.AnyAsync(x=>x.BloodUnitId==input.UnitId&&x.Status=="Active",ct))

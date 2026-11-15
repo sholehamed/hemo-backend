@@ -1,6 +1,6 @@
 # ADR-0003 — Clean Architecture + explicit CQRS with Minimal APIs
 
-Status: **Implemented for the ST-04 admission vertical slice**; migration of the older auth/org/user endpoint handlers remains tracked as follow-up.
+Status: **Implemented for all current ST-01 to ST-04 business flows**, including authentication, session/revocation/global permission, CLI bootstrap, organization, user administration and admission.
 
 ## Boundaries and flow
 - `Hemo.Domain`: patient/org/security entities and pure identity rules; no HTTP, SQL or Angular dependency.
@@ -27,4 +27,6 @@ Angular (cookie BFF)
 - SQL mappings/88-table baseline are unchanged by namespace-only relocations.
 - Existing serialized JSON, endpoints, role strings and UI clients remain backward compatible.
 - SQL integration tests and Chromium E2E must pass before merging.
-- Older Auth/Org/UserAdmin Minimal endpoints still contain some EF work; a dedicated follow-up extracts them behind application use cases. Do not mislabel them migrated.
+- Auth/Org/UserAdmin Minimal API endpoints now delegate to typed CQRS handlers; cookie issuance, CSRF, HTTP status mapping, health checks, rate limiting and authorization middleware remain in the transport layer by design. No controller business flow performs direct EF operations.
+- `AuthenticationSqlStore` handles account password hashing, signed-cookie session ledger validation, logout revocation and one-time admin provisioning. EF SQL integration and standalone handler tests cover regression.
+- EF permission resolution is an Infrastructure adapter. The HTTP security middleware invokes the CQRS `ValidateSessionQuery` and `HasGlobalPermissionQuery` handlers.

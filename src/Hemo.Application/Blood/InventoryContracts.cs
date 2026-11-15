@@ -7,6 +7,11 @@ public sealed record InventoryUnitView(long Id,string UnitCode,long ProductTypeI
     long FacilityId,DateOnly ExpiryDate,string Status,bool IsQuarantined,string RowVersion);
 public sealed record CrossmatchView(long Id,long UnitId,long RequestItemId,string Status,
     string CompatibilityResult,long PerformedBy,long? ApprovedBy,string RowVersion);
+public sealed record BankWorkItem(long ReservationId,long RequestId,long UnitId,string UnitCode,
+    string ReservationStatus,long? CrossmatchId,string? CrossmatchStatus,
+    string? CompatibilityResult,string? CrossmatchVersion);
+public sealed record ListBankWorkQuery(long Actor,long FacilityId)
+    : IQuery<Outcome<IReadOnlyList<BankWorkItem>>>;
 public sealed record RegisterUnitRequest(string UnitCode,long ProductTypeId,long BloodGroupId,
     DateOnly ExpiryDate,string? StorageLocation);
 public sealed record ReserveUnitRequest(long UnitId,long RequestId);
@@ -25,6 +30,7 @@ public interface IInventoryStore
 {
     Task<IReadOnlyList<InventoryUnitView>> ListAsync(long facility,CancellationToken ct);
     Task<IReadOnlyList<BloodGroupOption>> GroupsAsync(CancellationToken ct);
+    Task<IReadOnlyList<BankWorkItem>> WorkAsync(long facility,CancellationToken ct);
     Task<Outcome<InventoryUnitView>> ReceiveAsync(long actor,long facility,RegisterUnitRequest input,CancellationToken ct);
     Task<Outcome<long>> ReserveAsync(long actor,long facility,ReserveUnitRequest input,CancellationToken ct);
     Task<Outcome<CrossmatchView>> RecordAsync(long actor,long facility,RecordCrossmatchRequest input,CancellationToken ct);

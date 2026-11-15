@@ -18,6 +18,9 @@ public static class InventoryEndpoints
         group.MapGet("/blood-groups",async(long facilityId,HttpContext http,
             IRequestHandler<ListBloodGroupsQuery,Outcome<IReadOnlyList<BloodGroupOption>>> handler,
             CancellationToken ct)=>Respond(await handler.Handle(new(Actor(http),facilityId),ct)));
+        group.MapGet("/worklist",async(long facilityId,HttpContext http,
+            IRequestHandler<ListBankWorkQuery,Outcome<IReadOnlyList<BankWorkItem>>> handler,
+            CancellationToken ct)=>Respond(await handler.Handle(new(Actor(http),facilityId),ct)));
         group.MapPost("/units",async(long facilityId,RegisterUnitRequest input,HttpContext http,
             IAntiforgery anti,IRequestHandler<ReceiveStockCommand,Outcome<InventoryUnitView>> handler,
             CancellationToken ct)=>{

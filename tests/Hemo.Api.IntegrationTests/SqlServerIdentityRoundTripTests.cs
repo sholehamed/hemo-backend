@@ -394,7 +394,7 @@ public sealed class SqlServerIdentityRoundTripTests
         // ST-05: a nurse submits a verified Encounter request; a separate doctor
         // approves it. Server scope, self-approval and concurrency are checked.
         async Task<(long UserId, HttpClient Http, string Csrf)> NewClinicianAsync(
-            string username, string password, string roleCode)
+            string username, string password, string roleCode, bool facilityWide = false)
         {
             using var userResponse = await PostAdminAsync("/api/v1/admin/users/", new
             {
@@ -412,7 +412,7 @@ public sealed class SqlServerIdentityRoundTripTests
                 $"/api/v1/admin/users/{id}/grants", new
                 {
                     roleId, facilityId = (long?)facilityA,
-                    departmentId = (long?)deptA1
+                    departmentId = facilityWide ? (long?)null : deptA1
                 });
             Assert.Equal(HttpStatusCode.Created, granted.StatusCode);
             var http = factory.CreateClient(new WebApplicationFactoryClientOptions
@@ -499,6 +499,79 @@ public sealed class SqlServerIdentityRoundTripTests
             Assert.True(await clinicalDb.AuditEvents.AnyAsync(x =>
                 x.EntityType == "BloodRequest" && x.EntityId == bloodRequestId
                 && x.ActionType == "Approved"));
+        }
+
+        // ST-06: product-matched unit reservation and independently reviewed lab evidence.
+        var expert = await NewClinicianAsync("st06_bank", "Bank-Ci_2026-Str0ng!",
+            "BLOOD_TRANSFUSION_EXPERT", true);
+        var supervisor = await NewClinicianAsync("st06_super", "Super-Ci_2026-Str0ng!",
+            "SUPERVISOR", true);
+        using var bankHttp = expert.Http;
+        using var supervisorHttp = supervisor.Http;
+        var bankRoot = $"/api/v1/facilities/{facilityA}/blood-bank";
+        using var bloodGroupsResponse = await bankHttp.GetAsync(bankRoot + "/blood-groups");
+        Assert.Equal(HttpStatusCode.OK, bloodGroupsResponse.StatusCode);
+        var groups = await bloodGroupsResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var bloodGroupId = groups.EnumerateArray()
+            .First(x => x.GetProperty("code").GetString() == "O+")
+            .GetProperty("id").GetInt64();
+        using var stockReceived = await ClinicalPostAsync(bankHttp, bankRoot + "/units",
+            expert.Csrf, new { unitCode = "ST06-BLOOD-001", productTypeId = productId,
+                bloodGroupId, expiryDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(28)),
+                storageLocation = "CI / synthetic" });
+        Assert.Equal(HttpStatusCode.Created, stockReceived.StatusCode);
+        var unitJson = await stockReceived.Content.ReadFromJsonAsync<JsonElement>();
+        var stockUnitId = unitJson.GetProperty("id").GetInt64();
+        using var secondReceipt = await ClinicalPostAsync(bankHttp, bankRoot + "/units",
+            expert.Csrf, new { unitCode = "ST06-BLOOD-001", productTypeId = productId,
+                bloodGroupId, expiryDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(28)),
+                storageLocation = "CI / synthetic" });
+        Assert.Equal(HttpStatusCode.Conflict, secondReceipt.StatusCode);
+
+        using var blockedBank = await nurseHttp.GetAsync(bankRoot + "/units");
+        Assert.Equal(HttpStatusCode.Forbidden, blockedBank.StatusCode);
+        using var wrongFacility = await bankHttp.GetAsync(
+            $"/api/v1/facilities/{facilityB}/blood-bank/units");
+        Assert.Equal(HttpStatusCode.Forbidden, wrongFacility.StatusCode);
+
+        using var reservationResponse = await ClinicalPostAsync(bankHttp,
+            bankRoot + "/reservations", expert.Csrf,
+            new { unitId = stockUnitId, requestId = bloodRequestId });
+        Assert.Equal(HttpStatusCode.OK, reservationResponse.StatusCode);
+        var reservationId = await reservationResponse.Content.ReadFromJsonAsync<long>();
+        Assert.True(reservationId > 0);
+        using var doubleReserve = await ClinicalPostAsync(bankHttp,
+            bankRoot + "/reservations", expert.Csrf,
+            new { unitId = stockUnitId, requestId = bloodRequestId });
+        Assert.Equal(HttpStatusCode.Conflict, doubleReserve.StatusCode);
+
+        using var performed = await ClinicalPostAsync(bankHttp, bankRoot + "/crossmatches",
+            expert.Csrf, new { reservationId, compatibilityResult = "Compatible",
+                testCode = "XM-CI", testResult = "Recorded", comments = "Synthetic lab result" });
+        Assert.Equal(HttpStatusCode.OK, performed.StatusCode);
+        var crossJson = await performed.Content.ReadFromJsonAsync<JsonElement>();
+        var crossmatchId = crossJson.GetProperty("id").GetInt64();
+        var crossVersion = crossJson.GetProperty("rowVersion").GetString();
+        Assert.Equal("PendingReview", crossJson.GetProperty("status").GetString());
+        using var finalBySupervisor = await ClinicalPostAsync(supervisorHttp,
+            $"{bankRoot}/crossmatches/{crossmatchId}/finalize", supervisor.Csrf,
+            new { rowVersion = crossVersion });
+        Assert.Equal(HttpStatusCode.OK, finalBySupervisor.StatusCode);
+        var finalized = await finalBySupervisor.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Final", finalized.GetProperty("status").GetString());
+        using var duplicateFinal = await ClinicalPostAsync(supervisorHttp,
+            $"{bankRoot}/crossmatches/{crossmatchId}/finalize", supervisor.Csrf,
+            new { rowVersion = crossVersion });
+        Assert.Equal(HttpStatusCode.Conflict, duplicateFinal.StatusCode);
+        await using (var bankDb = new HemoDbContext(options))
+        {
+            Assert.Equal(1, await bankDb.UnitReservations.CountAsync(x =>
+                x.BloodUnitId == stockUnitId && x.Status == "Active"));
+            Assert.Equal(1, await bankDb.CrossmatchTests.CountAsync(x =>
+                x.CrossmatchId == crossmatchId));
+            Assert.True(await bankDb.AuditEvents.AnyAsync(x =>
+                x.EntityType == "Crossmatch" && x.EntityId == crossmatchId
+                && x.ActionType == "Finalized"));
         }
 
         using var disabled = await PostAdminAsync(

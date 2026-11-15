@@ -108,7 +108,7 @@ public sealed class ReactionSqlStore(HemoDbContext db,HemoAuditWriter audit,
         var actions=rcaId.HasValue
             ? await db.CorrectiveActions.AsNoTracking().Where(x=>x.RcaCaseId==rcaId.Value)
                 .OrderBy(x=>x.CorrectiveActionId).ToArrayAsync(ct)
-            : [];
+            : Array.Empty<CorrectiveAction>();
         return Outcome<ReactionDetails>.Ok(new ReactionDetails(
             await ViewAsync(e,ct),symptoms,assessments,investigations,
             actions.Select(Action).ToArray()));

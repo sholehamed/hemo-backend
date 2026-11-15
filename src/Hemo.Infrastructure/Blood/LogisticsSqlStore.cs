@@ -22,6 +22,16 @@ public sealed class LogisticsSqlStore(HemoDbContext db,HemoAuditWriter audit):IL
     private static ReturnView View(UnitReturn ret) => new(ret.UnitReturnId,
         ret.UnitIssueId,ret.Status,ret.Decision,Convert.ToBase64String(ret.RowVersion));
 
+    public async Task<IReadOnlyList<ReturnView>> ReturnsAsync(long facility,CancellationToken ct)
+    {
+        var records=await (from ret in db.UnitReturns
+            join unit in db.BloodUnits on ret.BloodUnitId equals unit.BloodUnitId
+            where unit.CurrentFacilityId==facility
+            orderby ret.ReturnedAt descending
+            select ret).AsNoTracking().Take(200).ToArrayAsync(ct);
+        return records.Select(View).ToArray();
+    }
+
     public async Task<IReadOnlyList<IssueView>> ListAsync(
         long facility,long department,CancellationToken ct)
     {

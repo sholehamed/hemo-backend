@@ -1,24 +1,21 @@
-# Hemo | دستورکار بعد از ST-04
-**آخرین بازبینی:** 2026-11-14. ST-02B و ST-03 در Main ادغام شده‌اند. ST-04 در PR #6 هر دو ریپو Merge و Backend CI / SQL Integration / Frontend CI / Chromium Browser E2E سبز شد. SOP هویت و الزامات امنیت انتشار هنوز بازند.
+# Hemo | دستورکار پس از ST-09
+**آخرین بازبینی:** 2026-11-15. ST-08 و ST-09 به‌صورت برش‌های فنی در دو ریپو ادغام شدند؛ Backend/SQL و Angular/Chromium (8/8) سبز است. تأیید بالینی/امنیتی همچنان باز است.
 
-## ST-04 — بررسی نهایی و موارد حل‌نشده
-- [x] ۶ Entity پذیرش به SQL Server Baseline نگاشت شدند.
-- [x] API اسکوب‌دار ثبت/ویرایش/فهرست/جزئیات، صدور مچ‌بند و بررسی تطبیق هویت.
-- [x] سناریو SQL یکپارچه: حفظ بعد از ثبت، scope بین بخش/مرکز، Barcode، Verified/Mismatch، RowVersion، تکرار کد ملی و اشغال تخت.
-- [x] Angular چهار صفحه پذیرش با HttpClient واقعی و تاریخ UI شمسی؛ Build/Smoke سبز.
-- [x] **Browser E2E واقعی** با Backend و SQL و داده ساختگی: Login → Admission → Reload → Verify و جست‌وجو؛ Chromium 1/1 موفق. تست‌های دسترسی غیرمجاز SQL جداگانه سبزند.
-- [ ] **تأیید بالینی SOP:** سیاست دو شناسه، تشخیص بیمار مجهول‌الهویه، duplicate-person reconciliation، مچ‌بند قابل‌اسکن و قواعد مغایرت.
-- [ ] بازبینی security برای اطلاعات محرمانه بیمار؛ تکمیل MFA/lockout/force-password-change و audit جزئی‌تر پیش از بهره‌برداری.
-- [ ] بررسی چاپ بارکد فیزیکی/اسکنر و آزمون دسترس‌پذیری؛ متن بارکد فعلی جایگزین استاندارد چاپ بیمارستان نیست.
-- [x] Backend Main CI پس از Merge سبز؛ Frontend PR CI/Browser سبز و Main CI بررسی‌شده. این وضعیت باید در هر تغییر جدید دوباره بررسی شود.
+## پیش‌نیازهای گیت بالینی و امنیت
+- [ ] تأیید SOP مستقل برای تعیین روش فیزیکی هویت بیمار و واحد، اسکن بارکد و دو امضای bedside.
+- [ ] تصویب زمان‌بندی و آستانه‌های بالینی پایش، توقف و escalation واکنش/اعلان فوری؛ تشخیص خودکار و استثنای emergency مجاز نیست.
+- [ ] تعیین قوانین رسمی ISBT، گزارش ملی و سطح مسئولیت پزشک/HV؛ فیلد NationalReportRequired فعلاً صرفاً داده ثبت‌شده است.
+- [ ] انجام lockout/MFA/تغییر رمز اجباری، PenTest، retention، Backup/Restore و ممیزی دسترسی PHI پیش از داده واقعی.
+- [ ] تکمیل خلأهای ST-07: thaw، نقل‌وانتقال بین مراکز و تصمیم restock تنها با SOP زنجیره سرد.
+- [ ] UAT واقعی با مسئولان پرستاری، بانک خون و هموویژیلانس روی staging با داده ساختگی.
 
-## ST-05 — طراحی و پیاده‌سازی درخواست خون
-1. تحلیل همه فرم‌های nurse-request، nurse-tasks، doctor-orders/approval و bloodbank-requests؛ یک Request مشترک بین نقش‌ها تعریف شود.
-2. طراحی دقیق State Machine با تأیید متخصص بیمارستان و تفکیک Draft/Submitted/DoctorReview/Approved/Rejected، Cancellation و Emergency.
-3. نگاشت SQL clinical.BloodRequest / Item / Approval / ClinicalTask به EF و قراردادهای DTO/API.
-4. Server-side permission و resource scope روی Encounter/Facility/Department و تقویت audit/TraceId.
-5. Angular فرم درخواست، جدول کارتابل پرستار، تأیید پزشک، درخواست‌های بانک خون در Branchهای مستقل Backend/Frontend.
-6. CI SQL + Integration تست multi-role، concurrency/idempotency، denied scope و Browser E2E.
-7. فقط بعد از سبزشدن تست‌های آخرین Commit PR و مرور تغییرات Merge شود.
+## ST-10 — تجهیزات و زنجیره سرد
+1. تطبیق جداول `equip` در SQL baseline با موجودی واقعی تجهیزات، Probe، Calibration، Reading، Alarm، Excursion و incident.
+2. تفکیک ثبت قرائت از تصمیم کیفیت بالینی. هیچ عدد دمایی به‌صورت پیش‌فرض «مجاز» یا «غیرمجاز» تعیین نشود تا SOP مصوب موجود باشد.
+3. CQRS Domain/Application/Infrastructure برای CRUD تجهیزات/قرائت و مدیریت برنامه PM/Calibration با Facility-scoped authorization و audit.
+4. Minimal API برای گزارش تاریخچه و ثبت و بازبینی مستقل حوادث زنجیره سرما. اثر بر واحد خون باید محافظه‌کارانه و همراه با قرنطینه باشد؛ رفع قرنطینه خودکار ممنوع.
+5. Angular Material RTL و responsive برای مدیریت تجهیزات، نمایش تاریخ شمسی و timeline رویدادها؛ بدون صفحه mock موفقیت.
+6. SQL Integration با دو مرکز، داده ساختگی، ثبت اختلاف همزمان، فقط-خواندنی بودن تاریخچه بعد signoff، مجوز نقش و سناریوی قرنطینه.
+7. مرور کد، نگهداری مستندات، GitHub Actions سبز **روی آخرین SHA** Backend/Frontend قبل از Merge.
 
-**اصل ثابت:** Hemo مستقل از Foundation باقی می‌ماند و هر Feature با شناسه مشترک و تست/مستند Backend+Frontend تحویل می‌شود.
+**اصل:** Hemo مستقل از Foundation است. تمام تغییرها در Branch/PR مستقل و با کد/تست/مستند باقی می‌مانند.

@@ -3,7 +3,7 @@
 **ترتیب اجرا:** ST-00 → ST-01 → ST-02A → ST-02B → ST-03 → ST-04 → ... → ST-13. هر گام شامل مستندات، تست و PR مستقل است. **ساختن همه Backend و سپس Frontend ممنوع نیست ولی راهبرد پروژه نیست**؛ هر گام باید همزمان قرارداد API و UI مصرف‌کننده را تعیین کند.
 
 ## تصویر کلان
-| مرحله | عنوان | وضعیت 2026-11-14 | خروجی قابل تحویل |
+| مرحله | عنوان | وضعیت فنی 2026-11-15 | خروجی قابل تحویل |
 |---|---|---|---|
 | ST-00 | استخراج و تحلیل پروتوتایپ | DONE (تحلیل سورس) | فهرست 62 صفحه / 15 جریان |
 | ST-01 | Bootstrap زیرساخت | DONE | ASP.NET Core + Angular + CI |
@@ -11,12 +11,12 @@
 | ST-02B | تثبیت SQL baseline و قرارداد داده | DONE (محدود: migration ارتقایی باقیمانده) | نصب schema تکرارپذیر، EF mappings، Seed و migration policy |
 | ST-03 | مجوز، امنیت و سازمان | DONE (پایه؛ موارد امنیتی باز) | Facility/Department authorization + مدیریت حساب + Audit |
 | ST-04 | پذیرش و پرونده | DONE (فنی؛ SOP/Release امنیتی باز) | Patient / Encounter / Wristband / IdentityVerification |
-| ST-05 | درخواست خون و تأیید | NEXT | Request / Items / Approval / Task با نقش‌های مشترک |
-| ST-06 | موجودی و Crossmatch | PLANNED | Stock / Reservation / Crossmatch / Compatibility workflow |
-| ST-07 | صدور و لجستیک | PLANNED | Issue / Dispatch / Receipt / Return / Waste / Thaw / Transfers |
-| ST-08 | تزریق و پایش | PLANNED | Transfusion / Vitals / Checklist / Signoff |
-| ST-09 | واکنش و پیگیری بالینی | PLANNED | Reaction / MedicalAssessment / Investigation / RCA linkage |
-| ST-10 | تجهیزات و زنجیره سرما | PLANNED | Equipment / PM / Calibration / Readings / Excursions |
+| ST-05 | درخواست خون و تأیید | DONE (technical slice؛ SOP باز) | Request / Items / Approval / Task با نقش‌های مشترک |
+| ST-06 | موجودی و Crossmatch | DONE (technical slice؛ SOP باز) | Stock / Reservation / Crossmatch / Compatibility workflow |
+| ST-07 | صدور و لجستیک | DONE (core؛ thaw/transfer/restock باز) | Issue / Dispatch / Receipt / Return / Waste / Thaw / Transfers |
+| ST-08 | تزریق و پایش | DONE (technical slice؛ clinical UAT باز) | Transfusion / Vitals / Checklist / Signoff |
+| ST-09 | واکنش و پیگیری بالینی | DONE (core؛ national reporting/alerts باز) | Reaction / MedicalAssessment / Investigation / RCA linkage |
+| ST-10 | تجهیزات و زنجیره سرما | NEXT | Equipment / PM / Calibration / Readings / Excursions |
 | ST-11 | کیفیت، آموزش و کمیته | PLANNED | QC / RCA-CAPA / Audit / Meeting / Training |
 | ST-12 | ترخیص، HIS و گزارش‌های رسمی | PLANNED | Discharge / Integration / Reports و Analytics همه نقش‌ها |
 | ST-13 | Hardening, UAT, Staging و Release | PLANNED | تست امنیت، داده، بار، Backup/Restore، ابلاغ بالینی |
@@ -73,6 +73,8 @@
 5. Data validation و UI جلالی و بارکد/چاپ به صورت پیش‌نیازهای مستقل از سخت‌افزار.
 6. Transaction test، گزارش مغایرت هویتی، ممنوعیت دسترسی مرکز دیگر و E2E پذیرش→تطبیق.
 7. خروج: داده ایجادشده پس از Reload و بین حساب‌های مجاز پایدار و قابل مشاهده باشد.
+
+> آخرین شاهد Merge: ST-05 تا ST-09 Backend/Frontend PRهای #9 تا #13. «DONE» در این جدول فقط برش فنی Merge/Test شده است، نه تأیید بالینی/امنیت انتشار. موارد Thaw/Transfers/Restock از ST-07 هنوز باز است؛ برای جزئیات به [CURRENT_STATUS](CURRENT_STATUS_FA.md) مراجعه کنید.
 
 ## ST-05 | درخواست و تأیید بین نقش‌ها
 1. BloodRequest/Item/ClinicalData/Approval/Task؛ انواع فرآورده و فیلد شرطی را بر اساس مرجع تحلیل تعریف کن.

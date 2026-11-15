@@ -1,33 +1,32 @@
 # Hemo — وضعیت واقعی و محل ادامه کار
-**به‌روزرسانی:** 2026-11-14 · **وضعیت:** ST-02B و ST-03 در main ادغام شده‌اند؛ ST-04 در هر دو ریپو Merge شده، Backend/SQL و مرورگر Chromium سبز هستند؛ بهره‌برداری بالینی هنوز به امضای SOP و سخت‌سازی نیاز دارد.
+**به‌روزرسانی:** 2026-11-15 · **وضعیت فنی:** ST-01 تا ST-09 (برش‌های اصلی) در هر دو ریپو Merge شده‌اند، با **گیت بالینی/امنیتی انتشار هنوز باز**.
 
-## وضعیت مستند و قابل استناد
-| شناسه | وضع | شاهد GitHub | توضیح |
+## وضعیت اجرا
+| مرحله | Backend | Frontend | توضیح و محدودیت |
 |---|---|---|---|
-| ST-00 — بررسی پروتوتایپ | مستند شده | 62 فایل HTML، تحلیل [مرجع](../reference/HEMO_WORKFLOWS_AND_DATA_MODEL_FA.md) | تحلیل بر اساس سورس، نه مرورگر/E2E |
-| ST-01 — زیرساخت مستقل | **Merged** | Backend [PR #1](https://github.com/sholehamed/hemo-backend/pull/1)، Frontend [PR #1](https://github.com/sholehamed/hemo-frontend/pull/1) | .NET 10 چهارلایه، Angular 22، health/status، CI |
-| ST-02A — BFF و هویت پایه | **Merged** | Backend [PR #2](https://github.com/sholehamed/hemo-backend/pull/2)، Frontend [PR #2](https://github.com/sholehamed/hemo-frontend/pull/2) | Cookie، CSRF، login/logout/session، sec.*، منوی مبتنی بر role |
-| ST-02B — قرارداد پایگاه داده | **Merged** | Backend/Frontend PR #4 | تطبیق نگاشت org/sec و SQL Baseline، Version/preflight؛ Migration ارتقایی هنوز جداگانه لازم است |
-| ST-03 — مجوز و سازمان | **Merged (foundation)** | Backend/Frontend PR #5 | کنترل scope بخش/مرکز و revocation SQL و مدیریت اولیه؛ MFA، lockout و تغییر رمز اجباری مانده‌اند |
-| ST-04 — پذیرش و هویت | **Merged; technical slice tested** | Backend/Frontend PR #6 | ثبت/جست‌وجو/ویرایش، Wristband، تطبیق هویت و Chromium E2E سبز؛ SOP بالینی و امنیت انتشار باز |
-| ST-05 ... ST-13 | **Not started** | [Roadmap](ROADMAP_FA.md) | جریان‌های درخواست خون تا استقرار |
+| ST-00 — تحلیل پروتوتایپ | مستند | 62 صفحه/15 جریان بررسی‌شده | تحلیل منبع، نه تصدیق نیازمندی درمانی |
+| ST-01 — راه‌اندازی | [PR #1](https://github.com/sholehamed/hemo-backend/pull/1) | [PR #1](https://github.com/sholehamed/hemo-frontend/pull/1) | .NET 10، Angular 22، CI |
+| ST-02A — هویت و BFF | [PR #2](https://github.com/sholehamed/hemo-backend/pull/2) | [PR #2](https://github.com/sholehamed/hemo-frontend/pull/2) | Cookie HttpOnly، CSRF، نشست |
+| ST-02B — SQL قرارداد داده | [PR #4](https://github.com/sholehamed/hemo-backend/pull/4) | [PR #4](https://github.com/sholehamed/hemo-frontend/pull/4) | Fresh-only baseline؛ upgrade migration مستقل باز |
+| ST-03 — سازمان و مجوز | [PR #5](https://github.com/sholehamed/hemo-backend/pull/5) | [PR #5](https://github.com/sholehamed/hemo-frontend/pull/5) | Facility/Department scoped؛ MFA/lockout هنوز باز |
+| ST-04 — پذیرش و هویت | [PR #6](https://github.com/sholehamed/hemo-backend/pull/6) | [PR #6](https://github.com/sholehamed/hemo-frontend/pull/6) + refactor [#8](https://github.com/sholehamed/hemo-frontend/pull/8) | Wristband/Identity Verification؛ چاپ اسکنر و SOP باز |
+| ST-05 — درخواست و تأیید | [PR #9](https://github.com/sholehamed/hemo-backend/pull/9) | [PR #9](https://github.com/sholehamed/hemo-frontend/pull/9) | درخواست واحد و تأیید مستقل پزشک؛ emergency SOP باز |
+| ST-06 — موجودی و سازگاری | [PR #10](https://github.com/sholehamed/hemo-backend/pull/10) | [PR #10](https://github.com/sholehamed/hemo-frontend/pull/10) | رزرو و Crossmatch مبتنی بر شواهد و تأیید مستقل؛ قوانین پزشکی خودکار نیست |
+| ST-07 — صدور و تحویل | [PR #11](https://github.com/sholehamed/hemo-backend/pull/11) | [PR #11](https://github.com/sholehamed/hemo-frontend/pull/11) | صدور/حمل/دریافت/قرنطینه/امحا؛ **thaw، انتقال و restock هنوز باز** |
+| ST-08 — تزریق و پایش | [PR #12](https://github.com/sholehamed/hemo-backend/pull/12) | [PR #12](https://github.com/sholehamed/hemo-frontend/pull/12) | آماده‌سازی، precheck، baseline/during vitals، start/stop/complete، independent signoff؛ SOP و قوانین بالینی باز |
+| ST-09 — واکنش و RCA | [PR #13](https://github.com/sholehamed/hemo-backend/pull/13) | [PR #13](https://github.com/sholehamed/hemo-frontend/pull/13) | گزارش پرستار، physician assessment، HV investigation، RCA/CAPA و تأیید مستقل؛ notification واقعی/گزارش ملی باز |
+| ST-10 تا ST-13 | برنامه‌ریزی | برنامه‌ریزی | تجهیزات، QC/آموزش، HIS/گزارش، hardening/release |
 
-## نتیجه تست ثبت‌شده قبل از این سند
-- Backend main: Release build و **10 تست معمول** موفق؛ شاخه PR #2 نیز **تست یکپارچه SQL Server 2022 (1/1)** را با اجرای Baseline کامل و Bootstrap/Login/Permission/Logout گذرانده است؛ [Workflow SQL](https://github.com/sholehamed/hemo-backend/actions/workflows/sql-server-integration.yml).
-- Frontend main: Production build و **7 تست smoke** موفق؛ [Frontend CI](https://github.com/sholehamed/hemo-frontend/actions/workflows/frontend-ci.yml).
-- **ST-04 Browser E2E واقعی با Chromium و Backend/SQL ۱/۱ سبز شد**؛ تست scope بین دو مرکز در SQL Integration سبز است. آزمون بارگذاری/کارایی و PenTest کامل **هنوز انجام نشده**.
-- اجرای SQL Server در Workflow به معنی صحت همه قوانین بالینی یا نهایی‌بودن کل 88 جدول نیست.
+## شواهد کیفیت آخرین مرحله
+- ST-08 Backend: [PR #12](https://github.com/sholehamed/hemo-backend/pull/12) — CI و SQL Server Integration سبز؛ سناریوی کامل صدور تا ثبت علائم، خاتمه و امضای مستقل با داده ساختگی آزمایش شد.
+- ST-08 Frontend: [PR #12](https://github.com/sholehamed/hemo-frontend/pull/12) — Angular Build/Smoke و Chromium E2E سبز پیش از Merge.
+- ST-09 Backend: [PR #13](https://github.com/sholehamed/hemo-backend/pull/13) — CI و SQL Server Integration سبز؛ ابتدا آزمون fixture به rate limit ورود برخورد کرد، با پیکربندی آزمایشی 24 (پیش‌فرض production **8** بدون تغییر) اصلاح شد.
+- ST-09 Frontend: [PR #13](https://github.com/sholehamed/hemo-frontend/pull/13) — Angular CI سبز، SQL seed و **8/8 Playwright** روی Chromium سبز. Rate-limit آزمون و locator مبهم در E2E اصلاح شدند.
+- **سبز بودن CI به معنی مجوز تزریق بیمار واقعی نیست:** قواعد پایش، تأیید بالینی، داده حساس، گزارش ملی، on-call escalation، تست بار/امنیت و UAT همچنان نیازمند تصویب و آزمون جداگانه‌اند.
 
-## کار بعدی بدون تداخل
-1. ST-04 از لحاظ کد و SQL/Chromium با داده مصنوعی تست شد. تأیید بالینی و امنیت بهره‌برداری (مچ‌بند قابل‌اسکن، SOP بیمار مجهول‌الهویه، MFA/Lockout/Password Change) هنوز باز است.
-2. ST-05 را تنها بعد از مشخص شدن قواعد گردش درخواست خون بین پرستار، پزشک و بانک خون آغاز کنید.
-3. تغییرات هر فاز، SQL/EF، Backend و Frontend را در Branch/PRهای مجزا نگه دارید؛ CI هر SHA باید سبز باشد.
+## دستورکار پس از ST-09
+1. [NEXT_ITERATION_FA](NEXT_ITERATION_FA.md) — شروع ST-10 تجهیزات و زنجیره سرد، مشروط به SOP دما/هشدار.
+2. تکمیل موارد باقیمانده ST-07 (Thaw، انتقال، Restock طبق SOP) و hardening پیش از هر استقرار.
+3. نگهداری سند تصمیم‌ها و traceability؛ هر مرحله باید PRهای جدا و CI سبز قبل از Merge داشته باشد.
 
-## گیت قبل از رفتن به پذیرش واقعی
-- [ ] DDL reference و EF entity mapping تطبیق و در CI SQL آزمون شود.
-- [ ] Permissionهای API و دامنه Facility/Department با داده حداقل دو مرکز و نقش‌های متفاوت تست شوند.
-- [ ] Account/bootstrap/seed امن و audit لایه هویت تأیید شوند.
-- [ ] خطاها بدون افشای PHI و با TraceId پاسخ داده شوند.
-- [ ] شکل قرارداد DTO / اعتبارسنجی / خطا / Pagination / concurrency مشخص و مستند شود.
-
-**هشدار:** Hemo هنوز برای استفاده با داده واقعی بیمار یا عملیات درمانی آماده نیست. گیت بالینی و امنیتی قبل از هر استقرار لازم است.
+**هشدار:** Hemo هنوز برای استفاده درمانی واقعی، داده واقعی بیمار یا استقرار عمومی تأیید نشده است.

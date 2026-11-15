@@ -1,3 +1,4 @@
+using Hemo.Application.Clinical;
 using Hemo.Application.Authentication;
 using Hemo.Application.Users;
 using Hemo.Application.Organization;
@@ -35,6 +36,11 @@ public static class DependencyInjection
         services.AddScoped<IRequestHandler<RevokeSessionCommand, Outcome<bool>>, RevokeSessionHandler>();
         services.AddScoped<IRequestHandler<HasGlobalPermissionQuery, bool>, HasGlobalPermissionHandler>();
         services.AddScoped<IRequestHandler<BootstrapSystemAdministratorCommand, Outcome<bool>>, BootstrapSystemAdministratorHandler>();
+        services.AddScoped<IRequestHandler<ListProductTypesQuery, Outcome<IReadOnlyList<ProductTypeOption>>>, ListProductTypesHandler>();
+        services.AddScoped<IRequestHandler<ListBloodRequestsQuery, Outcome<BloodRequestPage>>, ListBloodRequestsHandler>();
+        services.AddScoped<IRequestHandler<GetBloodRequestQuery, Outcome<BloodRequestView>>, GetBloodRequestHandler>();
+        services.AddScoped<IRequestHandler<SubmitBloodRequestCommand, Outcome<BloodRequestView>>, SubmitBloodRequestHandler>();
+        services.AddScoped<IRequestHandler<ReviewBloodRequestCommand, Outcome<BloodRequestView>>, ReviewBloodRequestHandler>();
         return services;
     }
 }

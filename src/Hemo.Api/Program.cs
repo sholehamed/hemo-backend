@@ -95,6 +95,7 @@ app.MapAdmissionEndpoints();
 app.MapBloodRequestEndpoints();
 app.MapInventoryEndpoints();
 app.MapLogisticsEndpoints();
+app.MapTransfusionEndpoints();
 
 app.Run();
 

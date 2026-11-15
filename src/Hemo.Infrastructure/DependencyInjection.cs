@@ -31,6 +31,7 @@ public static class DependencyInjection
         services.AddScoped<IBloodRequestStore, BloodRequestSqlStore>();
         services.AddScoped<IInventoryStore,InventorySqlStore>();
         services.AddScoped<ILogisticsStore,LogisticsSqlStore>();
+        services.AddScoped<ITransfusionStore,TransfusionSqlStore>();
         services.AddScoped<IAuthenticationStore, AuthenticationSqlStore>();
         services.AddScoped<IAdmissionStore, AdmissionService>();
         services.AddScoped<IUserAdministrationStore, UserAdministrationSqlStore>();

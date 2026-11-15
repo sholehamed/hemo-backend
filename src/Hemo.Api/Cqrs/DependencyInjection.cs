@@ -56,6 +56,15 @@ public static class DependencyInjection
         services.AddScoped<IRequestHandler<ReturnIssueCommand,Outcome<ReturnView>>,ReturnIssueHandler>();
         services.AddScoped<IRequestHandler<ReviewReturnCommand,Outcome<ReturnView>>,ReviewReturnHandler>();
         services.AddScoped<IRequestHandler<ListReturnsQuery,Outcome<IReadOnlyList<ReturnView>>>,ListReturnsHandler>();
+        services.AddScoped<IRequestHandler<ListTransfusionsQuery,Outcome<IReadOnlyList<TransfusionView>>>,ListTransfusionsHandler>();
+        services.AddScoped<IRequestHandler<GetTransfusionQuery,Outcome<TransfusionDetails>>,GetTransfusionHandler>();
+        services.AddScoped<IRequestHandler<PrepareTransfusionCommand,Outcome<TransfusionView>>,PrepareTransfusionHandler>();
+        services.AddScoped<IRequestHandler<RecordChecklistCommand,Outcome<TransfusionView>>,RecordChecklistHandler>();
+        services.AddScoped<IRequestHandler<RecordVitalCommand,Outcome<VitalView>>,RecordVitalHandler>();
+        services.AddScoped<IRequestHandler<StartTransfusionCommand,Outcome<TransfusionView>>,StartTransfusionHandler>();
+        services.AddScoped<IRequestHandler<StopTransfusionCommand,Outcome<TransfusionView>>,StopTransfusionHandler>();
+        services.AddScoped<IRequestHandler<CompleteTransfusionCommand,Outcome<TransfusionView>>,CompleteTransfusionHandler>();
+        services.AddScoped<IRequestHandler<SignoffTransfusionCommand,Outcome<TransfusionView>>,SignoffTransfusionHandler>();
         return services;
     }
 }

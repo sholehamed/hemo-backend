@@ -658,6 +658,154 @@ public sealed class SqlServerIdentityRoundTripTests
                 && x.Decision == "Quarantine"));
         }
 
+        // ST-08: independent fresh request and unit, so the ST-07 returned unit
+        // remains quarantined and cannot be repurposed for a transfusion.
+        using var st08RequestResponse = await ClinicalPostAsync(
+            nurseHttp,requestRoot+"/",nurse.Csrf,draft);
+        Assert.Equal(HttpStatusCode.Created,st08RequestResponse.StatusCode);
+        var st08RequestJson = await st08RequestResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var st08RequestId=st08RequestJson.GetProperty("bloodRequestId").GetInt64();
+        using var st08Approved = await ClinicalPostAsync(doctorHttp,
+            $"{requestRoot}/{st08RequestId}/review",doctor.Csrf,
+            new {decision="Approved",reason=(string?)null,
+                rowVersion=st08RequestJson.GetProperty("rowVersion").GetString()});
+        Assert.Equal(HttpStatusCode.OK,st08Approved.StatusCode);
+
+        using var st08Receipt=await ClinicalPostAsync(bankHttp,bankRoot+"/units",
+            expert.Csrf,new {unitCode="ST08-BLOOD-002",productTypeId=productId,
+                bloodGroupId,expiryDate=DateOnly.FromDateTime(DateTime.UtcNow.AddDays(29)),
+                storageLocation="CI / synthetic"});
+        Assert.Equal(HttpStatusCode.Created,st08Receipt.StatusCode);
+        var st08Unit=(await st08Receipt.Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("id").GetInt64();
+        using var st08Res=await ClinicalPostAsync(bankHttp,bankRoot+"/reservations",
+            expert.Csrf,new {unitId=st08Unit,requestId=st08RequestId});
+        Assert.Equal(HttpStatusCode.OK,st08Res.StatusCode);
+        var st08Reservation=await st08Res.Content.ReadFromJsonAsync<long>();
+        using var st08Lab=await ClinicalPostAsync(bankHttp,bankRoot+"/crossmatches",
+            expert.Csrf,new {reservationId=st08Reservation,compatibilityResult="Compatible",
+                testCode="XM-CI-08",testResult="Documented",
+                comments="Approved laboratory evidence fixture"});
+        Assert.Equal(HttpStatusCode.OK,st08Lab.StatusCode);
+        var st08LabJson=await st08Lab.Content.ReadFromJsonAsync<JsonElement>();
+        using var st08LabReview=await ClinicalPostAsync(supervisorHttp,
+            $"{bankRoot}/crossmatches/{st08LabJson.GetProperty("id").GetInt64()}/finalize",
+            supervisor.Csrf,new {rowVersion=st08LabJson.GetProperty("rowVersion").GetString()});
+        Assert.Equal(HttpStatusCode.OK,st08LabReview.StatusCode);
+        using var st08Issued=await ClinicalPostAsync(bankHttp,logisticsBank+"/issues",
+            expert.Csrf,new {unitId=st08Unit,requestId=st08RequestId,
+                departmentId=deptA1,conditionNote="Fixture issue"});
+        Assert.Equal(HttpStatusCode.OK,st08Issued.StatusCode);
+        var st08IssueJson=await st08Issued.Content.ReadFromJsonAsync<JsonElement>();
+        var st08IssueId=st08IssueJson.GetProperty("id").GetInt64();
+        using var st08Received=await ClinicalPostAsync(nurseHttp,
+            $"{wardLogistics}/issues/{st08IssueId}/receive",nurse.Csrf,
+            new {rowVersion=st08IssueJson.GetProperty("rowVersion").GetString(),
+                conditionNote="Bedside confirmed"});
+        Assert.Equal(HttpStatusCode.OK,st08Received.StatusCode);
+
+        var transfusionRoot=
+            $"/api/v1/facilities/{facilityA}/departments/{deptA1}/transfusions";
+        using var wrongScopeTransfusion=await nurseHttp.GetAsync(
+            $"/api/v1/facilities/{facilityB}/departments/{deptB1}/transfusions/");
+        Assert.Equal(HttpStatusCode.Forbidden,wrongScopeTransfusion.StatusCode);
+        using var prepared=await ClinicalPostAsync(nurseHttp,transfusionRoot+"/",
+            nurse.Csrf,new {issueId=st08IssueId});
+        Assert.Equal(HttpStatusCode.OK,prepared.StatusCode);
+        var preparedJson=await prepared.Content.ReadFromJsonAsync<JsonElement>();
+        var transfusionId=preparedJson.GetProperty("id").GetInt64();
+        var prepVersion=preparedJson.GetProperty("rowVersion").GetString();
+        Assert.Equal("Planned",preparedJson.GetProperty("status").GetString());
+        using var noBaselineStart=await ClinicalPostAsync(nurseHttp,
+            $"{transfusionRoot}/{transfusionId}/start",nurse.Csrf,
+            new {rowVersion=prepVersion,reason=(string?)null});
+        Assert.Equal(HttpStatusCode.Conflict,noBaselineStart.StatusCode);
+
+        using var baseline=await ClinicalPostAsync(nurseHttp,
+            $"{transfusionRoot}/{transfusionId}/vitals",nurse.Csrf,new {
+                timepointCode="Baseline",observedAt=DateTime.UtcNow,
+                systolicBp=(short?)120,diastolicBp=(short?)80,heartRate=(short?)78,
+                temperatureC=(decimal?)36.7m,spo2=(byte?)99,respiratoryRate=(short?)18,
+                urineOutputMl=(decimal?)null,alertFlag=false,
+                clinicalNote=(string?)"Synthetic baseline"});
+        Assert.Equal(HttpStatusCode.OK,baseline.StatusCode);
+        using var checklist=await ClinicalPostAsync(nurseHttp,
+            $"{transfusionRoot}/{transfusionId}/checklist",nurse.Csrf,new {
+                patientIdentityMatched=true,unitIdentityMatched=true,bloodGroupChecked=true,
+                compatibilityChecked=true,expiryChecked=true,baselineVitalChecked=true,
+                note="Physically verified by clinical fixture"});
+        Assert.Equal(HttpStatusCode.OK,checklist.StatusCode);
+        using var started=await ClinicalPostAsync(nurseHttp,
+            $"{transfusionRoot}/{transfusionId}/start",nurse.Csrf,
+            new {rowVersion=prepVersion,reason=(string?)null});
+        Assert.Equal(HttpStatusCode.OK,started.StatusCode);
+        var startedJson=await started.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("InProgress",startedJson.GetProperty("status").GetString());
+        using var staleStart=await ClinicalPostAsync(nurseHttp,
+            $"{transfusionRoot}/{transfusionId}/start",nurse.Csrf,
+            new {rowVersion=prepVersion,reason=(string?)null});
+        Assert.Equal(HttpStatusCode.Conflict,staleStart.StatusCode);
+
+        using var during=await ClinicalPostAsync(nurseHttp,
+            $"{transfusionRoot}/{transfusionId}/vitals",nurse.Csrf,new {
+                timepointCode="During",observedAt=DateTime.UtcNow,
+                systolicBp=(short?)115,diastolicBp=(short?)75,heartRate=(short?)82,
+                temperatureC=(decimal?)37.0m,spo2=(byte?)98,respiratoryRate=(short?)19,
+                urineOutputMl=(decimal?)null,alertFlag=false,
+                clinicalNote=(string?)"Synthetic monitoring"});
+        Assert.Equal(HttpStatusCode.OK,during.StatusCode);
+        using var completed=await ClinicalPostAsync(nurseHttp,
+            $"{transfusionRoot}/{transfusionId}/complete",nurse.Csrf,
+            new {rowVersion=startedJson.GetProperty("rowVersion").GetString(),
+                reason=(string?)null});
+        Assert.Equal(HttpStatusCode.OK,completed.StatusCode);
+        var completedJson=await completed.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Completed",completedJson.GetProperty("status").GetString());
+
+        using var selfSignoff=await ClinicalPostAsync(nurseHttp,
+            $"{transfusionRoot}/{transfusionId}/signoff",nurse.Csrf,
+            new {rowVersion=completedJson.GetProperty("rowVersion").GetString(),
+                comment=(string?)null});
+        Assert.Equal(HttpStatusCode.Forbidden,selfSignoff.StatusCode);
+        var secondNurse=await NewClinicianAsync("st08_independent",
+            "Nurse2-Ci_2026-Str0ng!","NURSE");
+        using var secondNurseHttp=secondNurse.Http;
+        using var independent=await ClinicalPostAsync(secondNurseHttp,
+            $"{transfusionRoot}/{transfusionId}/signoff",secondNurse.Csrf,
+            new {rowVersion=completedJson.GetProperty("rowVersion").GetString(),
+                comment="Independent synthetic verification"});
+        Assert.Equal(HttpStatusCode.OK,independent.StatusCode);
+        using var afterSignoff=await ClinicalPostAsync(nurseHttp,
+            $"{transfusionRoot}/{transfusionId}/vitals",nurse.Csrf,new {
+                timepointCode="FollowUp",observedAt=DateTime.UtcNow,
+                systolicBp=(short?)120,diastolicBp=(short?)80,heartRate=(short?)78,
+                temperatureC=(decimal?)36.9m,spo2=(byte?)99,respiratoryRate=(short?)18,
+                urineOutputMl=(decimal?)null,alertFlag=false,clinicalNote=(string?)null});
+        Assert.Equal(HttpStatusCode.Conflict,afterSignoff.StatusCode);
+        using var secondPreparation=await ClinicalPostAsync(nurseHttp,
+            transfusionRoot+"/",nurse.Csrf,new {issueId=st08IssueId});
+        Assert.Equal(HttpStatusCode.Conflict,secondPreparation.StatusCode);
+        using var unsafeReturn=await ClinicalPostAsync(supervisorHttp,
+            $"{wardLogistics}/issues/{st08IssueId}/return",supervisor.Csrf,
+            new {returnedByUserId=nurse.UserId,reasonCode="INAPPROPRIATE",
+                conditionCode="Sealed",temperatureC=(decimal?)4m,
+                notes="Must be denied after transfusion"});
+        Assert.Equal(HttpStatusCode.Conflict,unsafeReturn.StatusCode);
+        using var invalidCompletedStop=await ClinicalPostAsync(nurseHttp,
+            $"{transfusionRoot}/{transfusionId}/stop",nurse.Csrf,
+            new {rowVersion=completedJson.GetProperty("rowVersion").GetString(),
+                reason="Cannot stop a completed and signed off transfusion"});
+        Assert.Equal(HttpStatusCode.Conflict,invalidCompletedStop.StatusCode);
+
+        await using(var st08db=new HemoDbContext(options)) {
+            Assert.Equal(2,await st08db.VitalObservations.CountAsync(v=>
+                v.TransfusionId==transfusionId));
+            Assert.Equal(1,await st08db.TransfusionSignoffs.CountAsync(x=>
+                x.TransfusionId==transfusionId));
+            Assert.True(await st08db.TransfusionActions.AnyAsync(x=>
+                x.TransfusionId==transfusionId && x.ActionType=="Complete"));
+        }
+
         using var disabled = await PostAdminAsync(
             $"/api/v1/admin/users/{scopedUserId}/deactivate", new { });
         Assert.Equal(HttpStatusCode.NoContent, disabled.StatusCode);

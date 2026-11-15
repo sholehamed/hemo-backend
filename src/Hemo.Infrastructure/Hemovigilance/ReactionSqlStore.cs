@@ -256,6 +256,22 @@ public sealed class ReactionSqlStore(HemoDbContext db,HemoAuditWriter audit,
             return Outcome<ReactionView>.Fail("concurrency_conflict");}
     }
 
+    public async Task<Outcome<RcaDetails>> GetRcaAsync(
+        long facility,long rcaId,CancellationToken ct)
+    {
+        var r=await ScopedRca(facility).AsNoTracking()
+            .SingleOrDefaultAsync(x=>x.RcaCaseId==rcaId,ct);
+        if(r is null)return Outcome<RcaDetails>.Fail("not_found");
+        var causes=await db.RcaCauses.AsNoTracking()
+            .Where(x=>x.RcaCaseId==rcaId).OrderBy(x=>x.RcaCauseId)
+            .Select(x=>x.Description).ToArrayAsync(ct);
+        var actions=await db.CorrectiveActions.AsNoTracking()
+            .Where(x=>x.RcaCaseId==rcaId).OrderBy(x=>x.CorrectiveActionId)
+            .ToArrayAsync(ct);
+        return Outcome<RcaDetails>.Ok(new RcaDetails(
+            Rca(r),causes,actions.Select(Action).ToArray()));
+    }
+
     public async Task<Outcome<RcaView>> OpenRcaAsync(long actor,long facility,long eventId,
         CancellationToken ct)
     {

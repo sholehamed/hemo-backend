@@ -1,3 +1,4 @@
+using Hemo.Api.Clinical;
 using Hemo.Application.Authentication;
 using Hemo.Application.Cqrs;
 using Hemo.Api.Cqrs;
@@ -90,6 +91,7 @@ app.MapAuthEndpoints();
 app.MapOrganizationEndpoints();
 app.MapUserAdminEndpoints();
 app.MapAdmissionEndpoints();
+app.MapBloodRequestEndpoints();
 
 app.Run();
 
